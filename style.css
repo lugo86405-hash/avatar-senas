@@ -1,0 +1,849 @@
+/* ==========================================================================
+   Avatar Señas · Estilos del visualizador
+   El lienzo 3D ocupa toda la pantalla y la interfaz flota encima de él.
+   ========================================================================== */
+
+:root {
+  --bg: #20262e;
+  --surface: rgba(15, 19, 24, 0.82);
+  --text: #f2f4f7;
+  --muted: #aab4c0;
+  --accent: #4fb3a5;
+  --accent-text: #08201d;
+  --danger: #f28b82;
+  --border: rgba(255, 255, 255, 0.14);
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* Evita barras de scroll sobre el lienzo. */
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   Lienzo 3D
+   -------------------------------------------------------------------------- */
+
+#viewer {
+  position: fixed;
+  inset: 0;
+}
+
+#viewer canvas {
+  display: block; /* Quita el espacio inferior de los elementos en línea. */
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+#viewer canvas:active {
+  cursor: grabbing;
+}
+
+/* --------------------------------------------------------------------------
+   Título. No debe bloquear los gestos de OrbitControls.
+   -------------------------------------------------------------------------- */
+
+.brand {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 16px;
+  pointer-events: none;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+
+.brand p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* --------------------------------------------------------------------------
+   Estado de carga y errores
+   -------------------------------------------------------------------------- */
+
+.loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+}
+
+.loader[hidden] {
+  display: none;
+}
+
+.loader p {
+  margin: 0 0 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere; /* Rutas y comandos largos no desbordan en móvil. */
+}
+
+.progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+#progress-bar {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.15s linear;
+}
+
+.loader.is-error {
+  border-color: var(--danger);
+}
+
+.loader.is-error p {
+  margin-bottom: 0;
+}
+
+.loader.is-error .progress {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Indicador de seña actual. No debe bloquear los gestos de OrbitControls.
+   -------------------------------------------------------------------------- */
+
+.sign-indicator {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  width: min(220px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  pointer-events: none;
+}
+
+.sign-indicator[hidden] {
+  display: none;
+}
+
+.sign-indicator p {
+  margin: 0;
+}
+
+.sign-label,
+.sign-detail {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.sign-name {
+  margin: 2px 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.sign-detail {
+  min-height: 1.2em;
+}
+
+.sign-progress {
+  height: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+#sign-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* --------------------------------------------------------------------------
+   Panel de prueba
+   -------------------------------------------------------------------------- */
+
+.panel {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(760px, calc(100vw - 32px));
+  padding: 10px 12px;
+  transform: translateX(-50%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.panel label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.panel select,
+.panel input,
+.panel button {
+  min-height: 40px; /* Área cómoda para tocar en pantallas táctiles. */
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.panel select {
+  min-width: 0;
+  max-width: 100%;
+  background: #12171d;
+  color: var(--text);
+}
+
+/* Módulo 4: caja de glosas para el backend. */
+.field-wide {
+  flex: 1 1 320px;
+}
+
+/* Módulo 5: la frase en español ocupa su propia fila. En móvil, el botón baja
+   a una línea aparte (regla de .panel button más abajo). */
+.panel-row {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel input {
+  flex: 1;
+  min-width: 0;
+  background: #12171d;
+  color: var(--text);
+}
+
+.panel button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.panel button {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Micrófono: rojo mientras escucha. */
+.panel button.mic[aria-pressed="true"] {
+  border-color: #e5484d;
+  background: #e5484d;
+  color: #fff;
+}
+
+.panel button[hidden] {
+  display: none;
+}
+
+.panel button.secondary {
+  background: transparent;
+  color: var(--text);
+}
+
+.panel select:focus-visible,
+.panel input:focus-visible,
+.panel button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dev-note {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* En móvil, el indicador deja libre el título y los botones ocupan el ancho. */
+@media (max-width: 560px) {
+  .sign-indicator {
+    top: calc(max(16px, env(safe-area-inset-top)) + 52px);
+    left: 16px;
+    right: auto;
+    width: 170px;
+    padding: 8px 10px;
+  }
+
+  .sign-name {
+    font-size: 1.1rem;
+  }
+
+  .panel button {
+    flex: 1 1 100%;
+  }
+
+  .field {
+    flex: 1 1 40%;
+  }
+
+  .field select {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #progress-bar {
+    transition: none;
+  }
+}
+
+/* Estilo anime: fondo claro, así que el título pasa a tinta oscura. */
+body[data-estilo="anime"] .brand h1 {
+  color: #2a2340;
+}
+
+body[data-estilo="anime"] .brand p {
+  color: #5b5470;
+}
+
+/* Glosa LSC que devolvió el cerebro: una línea por oración, con la expresión facial. */
+.glosa-lsc {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  font: 600 13px/1.5 ui-monospace, "DejaVu Sans Mono", monospace;
+  letter-spacing: 0.02em;
+}
+.glosa-lsc .oracion { display: block; }
+.glosa-lsc .tipo { font: 400 11px/1.5 system-ui, sans-serif; opacity: 0.7; margin-left: 8px; }
+.glosa-lsc .deletreo { opacity: 0.65; font-weight: 400; }
+.panel .glosa-lsc[hidden] { display: none; }
+
+.glosa-lsc .aviso { color: #ffb84d; font: 500 12px/1.5 system-ui, sans-serif; }
+
+/* --------------------------------------------------------------------------
+   v51 · Modo en vivo y modo noticiero
+   -------------------------------------------------------------------------- */
+
+/* Botón "En vivo": rojo mientras escucha. */
+.panel button[aria-pressed="true"]#live-button,
+.noticiero-barra button[aria-pressed="true"] {
+  border-color: #e5484d;
+  background: #e5484d;
+  color: #fff;
+}
+
+.panel button[aria-pressed="true"]#news-button {
+  border-color: var(--accent);
+}
+
+/* Subtítulo de lo que se oye, como los subtítulos de televisión. */
+.subtitulo-vivo {
+  position: fixed;
+  left: 50%;
+  top: calc(max(16px, env(safe-area-inset-top)) + 4px); /* Arriba al centro: abajo está el panel. */
+  max-width: min(560px, calc(100vw - 520px));
+  z-index: 3;
+  margin: 0;
+  padding: 6px 14px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+}
+
+.subtitulo-vivo[hidden],
+.vivo-metricas[hidden] {
+  display: none;
+}
+
+/* Atraso, velocidad y latencia del modo en vivo. */
+.vivo-metricas {
+  position: fixed;
+  top: calc(max(16px, env(safe-area-inset-top)) + 110px);
+  right: 16px;
+  z-index: 3;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 500 12px/1.4 ui-monospace, "DejaVu Sans Mono", monospace;
+  pointer-events: none;
+}
+
+.vivo-metricas.alto {
+  border-color: #ffb84d;
+  color: #ffb84d;
+}
+
+/* El fondo del noticiero: video o YouTube a pantalla completa. */
+.noticiero {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #000;
+}
+
+.noticiero[hidden] {
+  display: none;
+}
+
+.noticiero-fondo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+  object-fit: contain;
+}
+
+.noticiero-fondo[hidden] {
+  display: none;
+}
+
+.noticiero-vacio {
+  position: absolute;
+  top: 50%;
+  left: 38%;
+  width: min(520px, 60vw);
+  transform: translate(-50%, -50%);
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.noticiero-vacio .pista {
+  font-size: 0.85rem;
+}
+
+.noticiero-fondo:not([hidden]) ~ .noticiero-vacio {
+  display: none;
+}
+
+/* Barra de controles del noticiero: arriba, sobre el video. */
+.noticiero-barra {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+
+.noticiero-barra:hover,
+.noticiero-barra:focus-within {
+  opacity: 1;
+}
+
+.noticiero-barra input[type="url"] {
+  width: min(320px, 50vw);
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #12171d;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.noticiero-barra button,
+.noticiero-barra .boton-archivo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font: 600 0.85rem system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.noticiero-barra button[hidden] {
+  display: none;
+}
+
+.noticiero-barra .secondary {
+  background: transparent;
+  color: var(--text);
+}
+
+.noticiero-barra .boton-archivo input {
+  display: none;
+}
+
+/* El avatar pasa a un recuadro abajo a la derecha, como el intérprete de un noticiero. */
+body.modo-noticiero #viewer {
+  inset: auto;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 1;
+  width: clamp(240px, 28vw, 480px);
+  /* Casi cuadrado: el espacio de señas (cintura a cabeza, manos abiertas) mide
+     más o menos lo mismo de ancho que de alto. Más angosto, se vería de cuerpo entero. */
+  aspect-ratio: 9 / 10;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.modo-noticiero .brand,
+body.modo-noticiero .panel,
+body.modo-noticiero .sign-indicator,
+body.modo-noticiero .loader {
+  display: none;
+}
+
+/* En el noticiero el subtítulo va abajo, a la izquierda del recuadro. */
+body.modo-noticiero .subtitulo-vivo {
+  top: auto;
+  left: 16px;
+  right: calc(clamp(240px, 28vw, 480px) + 32px);
+  bottom: max(24px, env(safe-area-inset-bottom));
+  max-width: none;
+  transform: none;
+}
+
+body.modo-noticiero .vivo-metricas {
+  top: auto;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(clamp(240px, 28vw, 480px) * 10 / 9 + 26px);
+}
+
+@media (max-width: 900px) {
+  .subtitulo-vivo {
+    top: calc(max(16px, env(safe-area-inset-top)) + 150px);
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 560px) {
+  body.modo-noticiero #viewer {
+    width: 42vw;
+  }
+  body.modo-noticiero .subtitulo-vivo {
+    right: calc(42vw + 32px);
+    font-size: 0.9rem;
+  }
+}
+
+/* ---------- v52: oído del modo en vivo (Google o Whisper) ---------- */
+.oido-select {
+  flex: 1;
+  min-width: 0;
+}
+.noticiero-barra .oido-select {
+  flex: 0 1 220px;
+}
+.oido-estado {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+.oido-estado.mal {
+  color: #ff8a80;
+  opacity: 1;
+}
+.noticiero-barra .oido-select {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #12171d;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   v55 · Pantalla dividida: información a la izquierda, avatar a la derecha.
+   Antes el panel flotaba sobre el avatar y le tapaba las manos.
+   ========================================================================== */
+:root {
+  --lateral: clamp(320px, 38vw, 560px); /* Ancho de la columna de información. */
+}
+
+.lateral {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: var(--lateral);
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  overflow-y: auto; /* Si no cabe todo, baja solo esta columna. */
+  border-right: 1px solid var(--border);
+  background: #171c22;
+}
+
+#viewer {
+  left: var(--lateral);
+}
+
+/* Dentro de la columna, nada flota: todo va en orden, de arriba abajo. */
+.lateral .brand,
+.lateral .sign-indicator,
+.lateral .panel {
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  width: auto;
+  transform: none;
+}
+
+body[data-estilo="anime"] .lateral .brand h1 { color: var(--text); }
+body[data-estilo="anime"] .lateral .brand p { color: var(--muted); }
+
+.lateral .panel {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.lateral .panel-row {
+  flex: 0 0 auto;
+}
+
+.lateral .panel-row > label {
+  flex: 1 1 100%;
+}
+
+.lateral #phrase-input {
+  flex: 1 1 100%;
+}
+
+.lateral .panel-row > button {
+  flex: 1 1 auto;
+}
+
+.lateral .glosa-lsc {
+  flex: 0 0 auto;
+}
+
+.lateral .field {
+  justify-content: space-between;
+}
+
+.lateral .field label {
+  flex: 0 0 auto;
+}
+
+.lateral .field select {
+  flex: 1 1 auto;
+  max-width: 70%;
+}
+
+/* La carga, el subtítulo y las métricas se centran en el lado del avatar. */
+.loader {
+  left: calc(var(--lateral) + (100vw - var(--lateral)) / 2);
+  width: min(360px, calc(100vw - var(--lateral) - 32px));
+}
+
+.subtitulo-vivo {
+  top: calc(max(16px, env(safe-area-inset-top)) + 4px);
+  left: calc(var(--lateral) + (100vw - var(--lateral)) / 2);
+  max-width: calc(100vw - var(--lateral) - 220px);
+}
+
+.vivo-metricas {
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+}
+
+/* En el noticiero la columna se esconde y el avatar vuelve al recuadro. */
+body.modo-noticiero .lateral {
+  display: none;
+}
+
+body.modo-noticiero .loader {
+  left: 50%;
+}
+
+/* Pantallas angostas (celular): el avatar arriba y la información debajo. */
+@media (max-width: 760px) {
+  :root {
+    --lateral: 0px;
+  }
+
+  #viewer {
+    left: 0;
+    bottom: 45vh;
+  }
+
+  .lateral {
+    top: auto;
+    width: 100%;
+    height: 45vh;
+    border-top: 1px solid var(--border);
+    border-right: 0;
+  }
+
+  .loader {
+    left: 50%;
+    top: 27vh;
+  }
+
+  .subtitulo-vivo {
+    max-width: calc(100vw - 32px);
+  }
+
+  .vivo-metricas {
+    top: calc(55vh - 48px);
+  }
+}
+
+/* ---------- v55 · Usar en OBS ---------- */
+.obs {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.obs summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.obs[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.obs[open] summary {
+  margin-bottom: 2px;
+}
+
+.obs-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text) !important;
+}
+
+.obs-check input {
+  min-height: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+#obs-url {
+  font: 12px/1.4 ui-monospace, "DejaVu Sans Mono", monospace;
+}
+
+.obs-ayuda {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* ---------- v55 · Vista para OBS (?overlay): solo el avatar, sin fondo ---------- */
+html:has(body.modo-overlay),
+body.modo-overlay {
+  background: transparent;
+}
+
+body.modo-overlay .lateral,
+body.modo-overlay .loader,
+body.modo-overlay .noticiero {
+  display: none;
+}
+
+body.modo-overlay #viewer {
+  inset: 0;
+  left: 0;
+}
+
+body.modo-overlay #viewer canvas {
+  cursor: default;
+}
+
+body.modo-overlay .subtitulo-vivo {
+  top: auto;
+  bottom: 12px;
+  left: 50%;
+  max-width: calc(100vw - 24px);
+  font-size: 0.95rem;
+}
+
+body.modo-overlay:not(.overlay-subtitulos) .subtitulo-vivo:not(.error),
+body.modo-overlay:not(.overlay-metricas) .vivo-metricas {
+  display: none;
+}
+
+.subtitulo-vivo.error {
+  background: rgba(120, 20, 20, 0.85);
+  font-size: 0.85rem;
+}
+.obs #obs-url {
+  width: 100%;
+  flex: 0 0 auto;
+}

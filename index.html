@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Avatar Señas</title>
+  <!-- v56: app instalable (PWA) -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#20262e">
+  <meta name="description" content="Avatar 3D que traduce español a Lengua de Señas Colombiana (LSC)">
+  <link rel="icon" href="iconos/icono-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="iconos/icono-192.png">
+  <link rel="stylesheet" href="style.css?v=55c">
+
+  <!--
+    Import map: le dice al navegador de dónde sacar 'three' y sus addons,
+    sin bundler ni npm. La versión va fijada para que una actualización de
+    Three.js no cambie el comportamiento del proyecto sin que lo decidas tú.
+  -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Modo noticiero (v51): un video a pantalla completa detrás del avatar, que pasa a un recuadro. -->
+  <section id="noticiero" class="noticiero" aria-label="Modo noticiero" hidden>
+    <video id="noticiero-video" class="noticiero-fondo" controls playsinline hidden></video>
+    <iframe id="noticiero-iframe" class="noticiero-fondo" title="Video del noticiero" hidden
+            allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    <div class="noticiero-vacio">
+      <p>Elige un video (un noticiero o una clase) y activa <strong>En vivo</strong>.</p>
+      <p class="pista">Para que el avatar oiga el video sin parlantes, elige como entrada de audio
+        el "Monitor" de la salida de sonido (en Fedora: pavucontrol → Grabación),
+        o elige <strong>Whisper · el video</strong>. Para YouTube: <strong>Whisper · una pestaña</strong>.</p>
+    </div>
+    <div class="noticiero-barra">
+      <label class="boton-archivo secondary">📁 Archivo<input id="noticiero-archivo" type="file" accept="video/*"></label>
+      <input id="noticiero-url" type="url" placeholder="Enlace de YouTube o de un .mp4" autocomplete="off">
+      <button type="button" id="noticiero-cargar" class="secondary">Cargar</button>
+      <select class="oido-select" aria-label="Qué oye el intérprete" hidden>
+        <option value="navegador">Oído: Google (micrófono)</option>
+        <option value="whisper-microfono">Oído: Whisper · micrófono</option>
+        <option value="whisper-video">Oído: Whisper · el video</option>
+        <option value="whisper-pestana">Oído: Whisper · una pestaña</option>
+        <option value="whisper-sistema">Oído: Whisper · audio del computador</option>
+      </select>
+      <button type="button" id="noticiero-vivo" aria-pressed="false" hidden>🔴 En vivo</button>
+      <button type="button" id="noticiero-salir" class="secondary" title="Salir (Esc)">✕ Salir</button>
+    </div>
+  </section>
+
+  <!-- Three.js inserta aquí su <canvas>. Mide lo mismo que la pantalla (o el recuadro del noticiero). -->
+  <main id="viewer" aria-label="Visor 3D del avatar"></main>
+
+  <!-- Subtítulo de lo que se oye en vivo y métricas del atraso. -->
+  <p id="subtitulo-vivo" class="subtitulo-vivo" aria-live="polite" hidden></p>
+  <p id="vivo-metricas" class="vivo-metricas" aria-live="off" hidden></p>
+
+  <!-- v55: pantalla dividida. A la izquierda la información (título, seña actual
+       y controles); a la derecha el avatar, sin nada encima. -->
+  <aside id="lateral" class="lateral" aria-label="Información y controles">
+  <header class="brand">
+    <h1>Avatar Señas</h1>
+    <p>Módulo 5 · Español a señas</p>
+  </header>
+
+  <!-- Indicador de la seña que el avatar está ejecutando en este momento. -->
+  <section id="sign-indicator" class="sign-indicator" role="status" aria-live="polite" hidden>
+    <p class="sign-label">Seña actual</p>
+    <p id="sign-name" class="sign-name">Pose neutral</p>
+    <p id="sign-detail" class="sign-detail"></p>
+    <div class="sign-progress" aria-hidden="true"><div id="sign-progress-bar"></div></div>
+  </section>
+
+  <!-- Panel: frase en español, tipo de animación, glosa y expresión. -->
+  <section id="dev-panel" class="panel" aria-label="Controles del avatar" hidden>
+    <!-- Frase en español -> cerebro lingüístico (Python) -> backend Java -> avatar. -->
+    <div class="panel-row">
+      <label for="phrase-input">Español</label>
+      <input id="phrase-input" type="text" value="Hola, ¿cómo estás?" placeholder="Escribe una frase en español…" autocomplete="off" maxlength="500">
+      <!-- Dictado por voz (solo en navegadores con reconocimiento de voz, como Chrome o Edge). -->
+      <button type="button" id="mic-button" class="secondary mic" aria-pressed="false" title="Dictar la frase con el micrófono" hidden>🎤 Hablar</button>
+      <button type="button" id="phrase-button">Traducir frase</button>
+    </div>
+    <!-- v51: intérprete en vivo (escucha continua) y vista de recuadro de noticiero. -->
+    <div class="panel-row">
+      <button type="button" id="live-button" aria-pressed="false" title="Escuchar sin parar e ir señando frase por frase" hidden>🔴 En vivo</button>
+      <button type="button" id="news-button" class="secondary" aria-pressed="false" title="Video a pantalla completa y el avatar en un recuadro" hidden>📺 Noticiero</button>
+    </div>
+    <!-- v52: qué oye el modo en vivo (Google en el navegador, o Whisper en este computador). -->
+    <div class="panel-row">
+      <select class="oido-select" aria-label="Qué oye el intérprete" hidden>
+        <option value="navegador">Oído: Google (micrófono)</option>
+        <option value="whisper-microfono">Oído: Whisper · micrófono</option>
+        <option value="whisper-video">Oído: Whisper · el video</option>
+        <option value="whisper-pestana">Oído: Whisper · una pestaña</option>
+        <option value="whisper-sistema">Oído: Whisper · audio del computador</option>
+      </select>
+    </div>
+    <p id="oido-estado" class="oido-estado" hidden></p>
+    <!-- v55: el avatar como capa de una transmisión (OBS), con fondo transparente. -->
+    <details id="obs" class="obs">
+      <summary>📡 Usar en OBS (transmisión)</summary>
+      <div class="field">
+        <label for="obs-fuente">Qué oye</label>
+        <select id="obs-fuente"></select>
+      </div>
+      <label class="obs-check"><input id="obs-subtitulos" type="checkbox"> Mostrar subtítulos</label>
+      <input id="obs-url" type="text" readonly aria-label="Enlace para OBS">
+      <div class="panel-row">
+        <button type="button" id="obs-copiar">Copiar enlace</button>
+        <button type="button" id="obs-abrir" class="secondary">Vista previa</button>
+      </div>
+      <p class="obs-ayuda">En OBS: Fuentes → + → <strong>Navegador</strong>, pega el enlace,
+        ancho 540 y alto 600. El avatar sale sin fondo, listo para ponerlo en una esquina.
+        Necesita <code>iniciar.sh</code> abierto.</p>
+    </details>
+    <!-- Resultado de la gramática LSC: glosas en orden de señas, oración por oración. -->
+    <p id="glosa-lsc" class="glosa-lsc" aria-live="polite" hidden></p>
+    <div class="field">
+      <label for="avatar-select">Avatar</label>
+      <select id="avatar-select"></select>
+    </div>
+    <div class="field">
+      <label for="style-select">Tipo de animación</label>
+      <select id="style-select">
+        <option value="realista">Realista</option>
+        <option value="anime">Anime</option>
+      </select>
+    </div>
+    <!-- Al elegir una glosa, el avatar la reproduce con la expresión seleccionada. -->
+    <div class="field">
+      <label for="gloss-select">Glosa</label>
+      <select id="gloss-select"></select>
+    </div>
+    <div class="field">
+      <label for="expression-select">Expresión</label>
+      <select id="expression-select"></select>
+    </div>
+  </section>
+  </aside>
+
+  <!-- Estado de carga y errores. Se oculta cuando el modelo ya está listo. -->
+  <section id="loader" class="loader" role="status" aria-live="polite">
+    <p id="status">Iniciando…</p>
+    <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
+  </section>
+
+  <script>
+    // Script clásico (no módulo): tiene que funcionar justamente cuando
+    // app.js no pudo arrancar. Dos causas típicas: abrir el HTML con doble
+    // clic (file://) o no tener internet para descargar Three.js.
+    function showStartupError() {
+      const message = location.protocol === 'file:'
+        ? 'Esta página necesita un servidor local. En la carpeta del proyecto ejecuta: python3 -m http.server 8000 y abre http://localhost:8000'
+        : 'No se pudo cargar app.js o Three.js. Revisa la consola y tu conexión a internet.';
+      document.getElementById('status').textContent = message;
+      document.getElementById('loader').classList.add('is-error');
+    }
+  </script>
+  <script type="module" src="app.js?v=56" onerror="showStartupError()"></script>
+  <script>
+    // v56: app instalable (PWA). El service worker guarda la página, Three.js, el
+    // avatar y las señas ya usadas, para abrirla sin internet (solo en https o
+    // localhost). Va aquí y no en app.js para registrarse aunque app.js falle.
+    if ('serviceWorker' in navigator && window.isSecureContext && !location.search.includes('sin-cache')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((error) => console.warn('[PWA] Sin service worker:', error));
+      });
+    }
+  </script>
+</body>
+</html>
