@@ -16,7 +16,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ControlFacial, EXPRESIONES } from './control-facial.js?v=51';
 // ?v= obliga al navegador a descargar la versión nueva tras un cambio.
-import { SecuenciadorSenas } from './secuenciador-senas.js?v=54';
+import { SecuenciadorSenas } from './secuenciador-senas.js?v=57';
 import { setEstilo } from './estilo-anime.js?v=51';
 import { TransicionNatural } from './transicion-natural.js?v=51';
 import { InterpreteVivo } from './interprete-vivo.js?v=55';
