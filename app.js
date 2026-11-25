@@ -20,7 +20,7 @@ import { SecuenciadorSenas } from './secuenciador-senas.js?v=57';
 import { setEstilo } from './estilo-anime.js?v=51';
 import { TransicionNatural } from './transicion-natural.js?v=51';
 import { InterpreteVivo } from './interprete-vivo.js?v=55';
-import { CerebroLocal } from './cerebro-local.js?v=56';
+import { CerebroLocal } from './cerebro-local.js?v=57';
 
 /* ==========================================================================
    1. CONFIGURACIÓN

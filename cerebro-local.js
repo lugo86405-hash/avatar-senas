@@ -84,6 +84,7 @@ export class CerebroLocal {
     this.terminaciones = Object.entries(g.terminaciones); // [['AR', [...]], ['ER', ...], ['IR', ...]]
     this.noVerbos = conjunto(g.no_verbos);
     this.sustantivosVerbales = conjunto(g.sustantivos_verbales);
+    this.cliticos = g.cliticos ?? []; // v57: los más largos primero
     this.senas = new Map(Object.entries(datos.diccionario.senas));
     this.letras = new Map(Object.entries(datos.diccionario.letras));
   }
@@ -129,6 +130,18 @@ export class CerebroLocal {
           const base = palabra.slice(0, -t.length) + inf;
           if (this.verbos.has(base)) return base;
         }
+      }
+    }
+    return null;
+  }
+
+  /** Verbo al que se le pegó un pronombre ("enseñarte" -> ENSEÑAR), o null. */
+  sinCliticos(palabra) {
+    for (const c of this.cliticos) {
+      if (palabra.endsWith(c) && palabra.length - c.length >= 2) {
+        const base = palabra.slice(0, -c.length);
+        const glosa = this.sinonimos.get(base) || (this.verbos.has(base) ? base : null) || this.verboBase(base);
+        if (this.verbos.has(glosa)) return glosa;
       }
     }
     return null;
@@ -202,7 +215,7 @@ export class CerebroLocal {
       } else if (this.omitir.has(n)) {
         glosa = null;
       } else {
-        glosa = this.sinonimos.get(n) || (this.vocabulario.has(n) ? n : this.verboBase(n)) || n;
+        glosa = this.sinonimos.get(n) || (this.vocabulario.has(n) ? n : this.verboBase(n)) || this.sinCliticos(n) || n;
       }
       if (glosa) items.push({ glosa, origen: palabras[i], relativo });
       else omitidas.push(palabras[i]);
