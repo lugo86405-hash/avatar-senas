@@ -130,6 +130,11 @@ const VELOCIDAD_ROSTRO = 14; // Con 14, llega al 95 % del gesto en unos 0,2 s.
 const VELOCIDAD_CABEZA = 9; // La cabeza pesa más que la piel: reacciona más lento.
 const VELOCIDAD_POSTURA = 5; // El tronco es aún más lento: llega en unos 0,6 s.
 const GRADOS = Math.PI / 180;
+// v64: vida mientras espera. El parpadeo y la respiración están siempre; las
+// miradas de reojo, solo cuando el avatar espera señas.
+const PARPADEO = { cada: [2.5, 6], dura: 0.16, doble: 0.2 };     // segundos; 20 % de las veces parpadea dos veces
+const RESPIRACION = { periodo: 4.2, columna: 1.2, cuello: -0.6 }; // grados: el pecho sube y la cabeza se compensa
+const MIRADAS = { cada: [3, 7], dura: [0.6, 1.4], intensidad: 0.35 };
 // Hueso, eje del avatar y parte de cada componente de la postura que recibe.
 // La inclinación del tronco se reparte entre las tres vértebras para que se curve.
 const REPARTO_POSTURA = [
@@ -155,6 +160,11 @@ export class ControlFacial {
   #qPostura = new THREE.Quaternion();
   #qHueso = new THREE.Quaternion();
   #ejePostura = new THREE.Vector3();
+  #enEspera = false;
+  #reloj = 0;
+  #parpadeo = { proximo: 2, inicio: -1, veces: 0 };
+  #mirada = { proximo: 4, hasta: 0, morph: null };
+  #parpadosTocados = false;
 
   // Objetos reutilizados: evitan crear basura en cada cuadro de animación.
   #ejeMundo = new THREE.Vector3();
@@ -238,9 +248,76 @@ export class ControlFacial {
 
   /** @param {number} delta Segundos desde el cuadro anterior. */
   afterMixer(delta) {
+    this.#reloj += delta;
     this.#actualizarRostro(delta);
+    this.#actualizarVida();
     this.#actualizarPostura(delta);
     this.#actualizarCabeza(delta);
+  }
+
+  /** v64: el secuenciador avisa si el avatar espera señas (miradas de reojo) o seña. */
+  setEnEspera(valor) {
+    this.#enEspera = Boolean(valor);
+  }
+
+  /** Parpadeo y miradas: se escriben encima del rostro, sin tocar sus objetivos. */
+  #actualizarVida() {
+    const t = this.#reloj;
+    const azar = ([a, b]) => a + Math.random() * (b - a);
+
+    // Parpadeo: cierra y abre en PARPADEO.dura con forma de campana.
+    const p = this.#parpadeo;
+    if (p.inicio < 0 && t >= p.proximo) {
+      p.inicio = t;
+      p.veces = Math.random() < PARPADEO.doble ? 2 : 1;
+    }
+    let cierre = 0;
+    if (p.inicio >= 0) {
+      const fase = (t - p.inicio) / PARPADEO.dura;
+      if (fase >= p.veces) {
+        p.inicio = -1;
+        p.proximo = t + azar(PARPADEO.cada);
+      } else {
+        cierre = Math.sin(Math.PI * (fase % 1));
+      }
+    }
+    for (const nombre of ['parpado_izq_cerrado', 'parpado_der_cerrado']) {
+      const morph = this.#morphs.get(nombre);
+      if (!morph) continue;
+      if (cierre > 0 || this.#parpadosTocados) {
+        const valor = Math.max(morph.actual, cierre);
+        for (const [malla, indice] of morph.destinos) malla.morphTargetInfluences[indice] = valor;
+      }
+    }
+    this.#parpadosTocados = cierre > 0;
+
+    // Miradas de reojo mientras espera: los ojos van a un lado y vuelven.
+    const m = this.#mirada;
+    let mirar = null;
+    if (this.#enEspera && this.expresion === 'neutral') {
+      if (t >= m.proximo) {
+        const opciones = ['mirada_izq', 'mirada_der', 'mirada_abajo'].filter((n) => this.#morphs.has(n));
+        m.morph = opciones[Math.floor(Math.random() * opciones.length)] ?? null;
+        m.hasta = t + azar(MIRADAS.dura);
+        m.proximo = m.hasta + azar(MIRADAS.cada);
+      }
+      if (t < m.hasta && m.morph) mirar = m.morph;
+    } else {
+      m.hasta = 0;
+    }
+    for (const nombre of ['mirada_izq', 'mirada_der', 'mirada_abajo']) {
+      const morph = this.#morphs.get(nombre);
+      if (!morph) continue;
+      const objetivo = nombre === mirar ? MIRADAS.intensidad : 0;
+      // Se mueve con su propio suavizado, sin pisar una mirada que pida la expresión.
+      morph.vida = THREE.MathUtils.lerp(morph.vida ?? 0, objetivo, 0.12);
+      if (morph.vida < UMBRAL) morph.vida = 0;
+      if (morph.vida > 0 || morph.vidaAntes > 0) {
+        const valor = Math.max(morph.actual, morph.vida);
+        for (const [malla, indice] of morph.destinos) malla.morphTargetInfluences[indice] = valor;
+      }
+      morph.vidaAntes = morph.vida;
+    }
   }
 
   /**
@@ -260,19 +337,19 @@ export class ControlFacial {
   /** Inclinación sostenida (v61): se suma a la pose del clip, hueso por hueso. */
   #actualizarPostura(delta) {
     const factor = 1 - Math.exp(-VELOCIDAD_POSTURA * delta);
-    let hayPostura = false;
     for (const valor of Object.values(this.#postura)) {
       valor.actual = THREE.MathUtils.lerp(valor.actual, valor.objetivo, factor);
       if (Math.abs(valor.actual - valor.objetivo) < UMBRAL * GRADOS) valor.actual = valor.objetivo;
-      if (valor.actual !== 0) hayPostura = true;
     }
-    if (!hayPostura) return;
+    // v64: respiración, una onda lenta que el pecho sigue siempre.
+    const onda = Math.sin((2 * Math.PI * this.#reloj) / RESPIRACION.periodo);
+    const extra = { columna: -RESPIRACION.columna * GRADOS * onda, cuello: -RESPIRACION.cuello * GRADOS * onda };
 
     this.modelo.getWorldQuaternion(this.#qModelo);
     // De la cadera hacia arriba: cada hueso usa su orientación ya inclinada.
     for (const [parte, nombreHueso, eje, peso] of REPARTO_POSTURA) {
       const hueso = this.#huesosPostura[nombreHueso];
-      const angulo = this.#postura[parte].actual * peso;
+      const angulo = (this.#postura[parte].actual + (extra[parte] ?? 0)) * peso;
       if (!hueso || angulo === 0) continue;
       if (!this.#basesPostura.has(hueso)) this.#basesPostura.set(hueso, hueso.quaternion.clone());
       // Igual que en los gestos: el eje del avatar se lleva al espacio del hueso.

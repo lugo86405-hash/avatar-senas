@@ -42,7 +42,10 @@ export const CONFIG_SECUENCIA = {
   // Entrar y salir del reposo es más largo: la mano sube desde la cadera y, en
   // 0,25 s, recorrería casi un metro. Entre señas el recorrido es mucho menor.
   transicionIdle: 0.4,
-  clipIdle: 'Reposo', // Clip del avatar al que se vuelve entre secuencias.
+  clipIdle: 'Reposo', // Clip del avatar al que se vuelve si no hay clip de espera.
+  // v64: animación de espera (manos juntas frente al abdomen, como los intérpretes).
+  // Se descarga de la carpeta de señas; mientras llega, se usa clipIdle.
+  clipEspera: 'ESPERA',
   // Se agrega como ?v= a cada clip. Súbelo al regenerar las animaciones: si no,
   // el navegador puede usar un clip viejo de su caché (hecho para otro esqueleto).
   version: 63,
@@ -315,6 +318,7 @@ export class SecuenciadorSenas extends EventTarget {
 
     // Rostro y manos reciben la orden en el mismo cuadro.
     this.#facial.setExpresion(sena.expresion);
+    this.#facial.setEnEspera?.(false);
 
     this.dispatchEvent(new CustomEvent('sena', {
       detail: {
@@ -368,11 +372,25 @@ export class SecuenciadorSenas extends EventTarget {
 
   #volverAIdle(fade) {
     this.#facial.setExpresion('neutral');
+    this.#facial.setEnEspera?.(true);
 
-    if (this.#viewer.clipNames.includes(this.#config.clipIdle)) {
-      this.#viewer.play(this.#config.clipIdle, { loop: true, fade });
+    const { clipEspera, clipIdle } = this.#config;
+    if (clipEspera && this.#viewer.clipNames.includes(clipEspera)) {
+      this.#viewer.play(clipEspera, { loop: true, fade });
+      return;
+    }
+    if (this.#viewer.clipNames.includes(clipIdle)) {
+      this.#viewer.play(clipIdle, { loop: true, fade });
     } else {
       this.#viewer.stop(fade);
+    }
+    // La primera vez el clip de espera aún no está: se descarga y, si el avatar
+    // sigue quieto cuando llega, pasa a él con calma.
+    if (clipEspera) {
+      const solicitud = this.#solicitud;
+      this.#cargarClip(clipEspera).then(() => {
+        if (this.#cola === null && solicitud === this.#solicitud) this.#volverAIdle(0.8);
+      }, () => { this.#config.clipEspera = null; }); // Sin clip de espera: se queda el reposo.
     }
   }
 
