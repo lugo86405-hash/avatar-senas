@@ -8,7 +8,7 @@
  *   cambian sin cambiar su ?v=. Se guardan la primera vez que se usan.
  * - Whisper, el cerebro y el backend (puertos 8001, 8002, 8080) nunca se guardan.
  */
-const VERSION = 'avatar-senas-v59'; // cambiarla borra las copias viejas (señas incluidas)
+const VERSION = 'avatar-senas-v60'; // cambiarla borra las copias viejas (señas incluidas)
 const NUCLEO = `${VERSION}-nucleo`;
 const RECURSOS = `${VERSION}-recursos`;
 
@@ -16,8 +16,8 @@ const INICIALES = [
   './',
   './index.html',
   './style.css?v=55c',
-  './app.js?v=59',
-  './cerebro-local.js?v=58',
+  './app.js?v=60',
+  './cerebro-local.js?v=60',
   './cerebro-datos.json',
   './manifest.webmanifest',
   './iconos/icono-192.png',

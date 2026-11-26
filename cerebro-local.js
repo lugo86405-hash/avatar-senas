@@ -51,7 +51,17 @@ const contiene = (lista, x) => lista.some((y) => iguales(x, y));
 
 const PRONOMBRES = new Set(['YO', 'TU', 'EL', 'NOSOTROS', 'USTEDES', 'USTED', 'ELLOS']);
 const POSESIVOS = new Set(['MIO', 'TU', 'SUYO', 'NUESTRO', 'TUYO']);
-const VERBOS_IR = new Set(['VOY', 'VAS', 'VA', 'VAMOS', 'VAN', 'IBA', 'IBAN']);
+// v60 (video "Cómo hacer preguntas en LSC"): IR, sujeto tácito TÚ, demostrativos y YA al final
+const IR_FORMAS = new Set(['VOY', 'VAS', 'VA', 'VAMOS', 'VAN', 'IBA', 'IBAS', 'IBAMOS', 'IBAN', 'IR', 'IRE', 'IRAS',
+  'IREMOS', 'IRAN', 'IDO', 'YENDO', 'FUI', 'FUISTE', 'FUE', 'FUIMOS', 'FUERON']);
+const IR_SER = new Set(['FUI', 'FUISTE', 'FUE', 'FUIMOS', 'FUERON']);
+const DEMOSTRATIVOS = new Set(['ese', 'esa', 'eso', 'esos', 'esas', 'este', 'esto', 'estos',
+  'aquel', 'aquella', 'aquello', 'aquellos', 'aquellas']);
+const DEMOSTRATIVOS_PRONOMBRE = new Set(['eso', 'esto', 'aquello']);
+const SEGUNDA_PERSONA = /(AS|ES|ASTE|ISTE)$/;
+const DETERMINANTES = new Set(['la', 'las', 'el', 'los', 'un', 'una', 'unos', 'unas', 'mis', 'tus', 'sus', 'nuestras',
+  'nuestros', 'muchas', 'muchos', 'pocas', 'pocos', 'esas', 'esos', 'estas', 'estos', 'otras', 'otros']);
+const SUJETOS = new Set(['YO', 'TU', 'EL', 'ELLA', 'NOSOTROS', 'USTEDES', 'USTED', 'ELLOS']);
 const MARCAS = { pregunta_abierta: '(?)', pregunta_si_no: '(?)', exclamativa: '(!)' };
 
 export class CerebroLocal {
@@ -160,6 +170,8 @@ export class CerebroLocal {
     const items = [];
     const omitidas = [];
     let emocion = null;
+    let verboTu = null;                                  // v60: verbo en segunda persona sin sujeto
+    let tuPendiente = false;
     let i = 0;
     while (i < palabras.length) {
       const expresion = this.expresiones.find(({ partes }) =>
@@ -211,15 +223,33 @@ export class CerebroLocal {
         glosa = 'NO';
       } else if (b === 'mi') {
         glosa = 'MIO';
-      } else if (VERBOS_IR.has(n) && siguienteNorma === 'A') {
-        glosa = null;                                    // futuro con "ir a": lo marca el tiempo, no IR
+      } else if (IR_FORMAS.has(n)) {
+        const tras2 = i + 2 < normas.length ? normas[i + 2] : null;
+        if (IR_SER.has(n)) {
+          glosa = ['A', 'AL', 'PARA', 'HACIA'].includes(siguienteNorma) ? 'IR' : null; // "fue bueno": SER
+        } else if (siguienteNorma === 'A' && tras2 !== null && /(AR|ER|IR)$/.test(tras2)) {
+          glosa = null;                                  // futuro con "ir a" + infinitivo
+        } else {
+          glosa = 'IR';
+        }
+      } else if (DEMOSTRATIVOS.has(b)) {
+        glosa = 'ESE';
       } else if (this.omitir.has(n)) {
         glosa = null;
       } else {
         glosa = this.sinonimos.get(n) || (this.vocabulario.has(n) ? n : this.verboBase(n)) || this.sinCliticos(n) || n;
       }
-      if (glosa) items.push({ glosa, origen: palabras[i], relativo });
-      else omitidas.push(palabras[i]);
+      if (b === 'eres' || b === 'estás') {
+        tuPendiente = verboTu === null;
+      } else if (verboTu === null && glosa !== null && this.verbos.has(glosa) && n !== glosa && SEGUNDA_PERSONA.test(n)
+          && !(i > 0 && DETERMINANTES.has(bajas[i - 1]))) {
+        tuPendiente = true;                              // "vives", "comiste", "quieres" (no "las preguntas")
+      }
+      if (glosa) {
+        items.push({ glosa, origen: palabras[i], relativo });
+        if (tuPendiente && verboTu === null) verboTu = items.at(-1);
+        tuPendiente = false;
+      } else omitidas.push(palabras[i]);
       i += 1;
     }
 
@@ -242,6 +272,23 @@ export class CerebroLocal {
         break;
       }
     }
+    // v60: el demostrativo va después del sustantivo (PERSONA ESE)
+    for (let k = 0; k < resto.length - 1;) {
+      const x = resto[k];
+      const y = resto[k + 1];
+      if (x.glosa === 'ESE' && !DEMOSTRATIVOS_PRONOMBRE.has(x.origen.toLowerCase())
+          && !this.esVerbo(y.glosa) && !SUJETOS.has(y.glosa) && y.glosa !== 'NO') {
+        resto[k] = y;
+        resto[k + 1] = x;
+        k += 2;
+      } else k += 1;
+    }
+    // v60: sujeto tácito de segunda persona: TU justo antes del verbo
+    if (verboTu !== null && !items.some((x) => SUJETOS.has(x.glosa))) {
+      const tu = { glosa: 'TU', origen: verboTu.origen, relativo: false };
+      const donde = resto.indexOf(verboTu);
+      if (donde >= 0) resto = [...resto.slice(0, donde), tu, ...resto.slice(donde)];
+    }
     // negación: NO después del primer verbo que la sigue; si no hay verbo, al final
     const cuerpo = [];
     const negados = [];
@@ -262,7 +309,11 @@ export class CerebroLocal {
       }
     }
     agregarNo();
-    const ordenados = [...cortesia, ...tiempo, ...cuerpo, ...preguntas];
+    // v60: YA (acción terminada) al final, salvo "ya no"
+    const conYa = (cuerpo.length > 1 && !cuerpo.some((x) => x.glosa === 'NO'))
+      ? [...cuerpo.filter((x) => x.glosa !== 'YA'), ...cuerpo.filter((x) => x.glosa === 'YA')]
+      : cuerpo;
+    const ordenados = [...cortesia, ...tiempo, ...conYa, ...preguntas];
 
     // --- tipo de oración y expresión facial
     const glosas = ordenados.map((x) => x.glosa);
