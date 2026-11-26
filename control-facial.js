@@ -76,6 +76,11 @@ export const GESTOS_CABEZA = {
  * Valores válidos para el campo "expresion" del JSON de glosas.
  * - rostro: nombre de BLENDSHAPES → intensidad (0–1).
  * - cabeza: nombre de GESTOS_CABEZA (opcional).
+ * - postura (v61, opcional): inclinación sostenida mientras dura la expresión,
+ *   en grados y sumada a lo que hace el clip. columna = tronco hacia adelante (+)
+ *   o atrás (−); cuello y cabeza = hacia adelante/abajo (+) o atrás/arriba (−);
+ *   ladeo = la cabeza hacia un hombro. Ej.: en una pregunta de sí o no el cuerpo
+ *   se inclina un poco hacia la otra persona.
  */
 export const EXPRESIONES = {
   neutral: { rostro: {} },
@@ -83,17 +88,17 @@ export const EXPRESIONES = {
   cejas_arriba: { rostro: { cejas_arriba: 1, ojos_abiertos: 0.4 } },
   ceno: { rostro: { cejas_abajo: 1, ojos_enojo: 0.5 } },
   boca_abierta: { rostro: { boca_abierta: 0.8 } },
-  sorpresa: { rostro: { cejas_arriba: 1, ojos_abiertos: 0.9, boca_fruncida: 0.9 } },
-  tristeza: { rostro: { cejas_centro_arriba: 1, ojos_tristes: 0.8, boca_triste: 0.9 } },
-  ruego: { rostro: { cejas_centro_arriba: 0.8, ojos_entrecerrados: 0.6, boca_apretada: 0.3, sonrisa: 0.15 } }, // petición (POR_FAVOR, PERMISO); v59 según el video
-  enojo: { rostro: { cejas_abajo: 1, ojos_enojo: 1, boca_apretada: 0.9 } },
-  duda: { rostro: { ceja_izq_arriba: 1, boca_lado: 1 } },
+  sorpresa: { rostro: { cejas_arriba: 1, ojos_abiertos: 0.9, boca_fruncida: 0.9 }, postura: { columna: -4, cabeza: -4 } },
+  tristeza: { rostro: { cejas_centro_arriba: 1, ojos_tristes: 0.8, boca_triste: 0.9 }, postura: { cuello: 3, cabeza: 7 } },
+  ruego: { rostro: { cejas_centro_arriba: 0.8, ojos_entrecerrados: 0.6, boca_apretada: 0.3, sonrisa: 0.15 }, postura: { columna: 3, ladeo: 5 } }, // petición (POR_FAVOR, PERMISO); v59 según el video
+  enojo: { rostro: { cejas_abajo: 1, ojos_enojo: 1, boca_apretada: 0.9 }, postura: { columna: 2, cabeza: 3 } },
+  duda: { rostro: { ceja_izq_arriba: 1, boca_lado: 1 }, postura: { ladeo: -5 } },
   guino: { rostro: { guino: 1, sonrisa: 0.8 } },
-  risa: { rostro: { ojos_felices: 1, sonrisa_abierta: 1, cejas_arriba: 0.3 } },
-  asco: { rostro: { nariz_arrugada: 1, cejas_abajo: 0.6, labio_sup_arriba: 0.5 } },
+  risa: { rostro: { ojos_felices: 1, sonrisa_abierta: 1, cejas_arriba: 0.3 }, postura: { cabeza: -4 } },
+  asco: { rostro: { nariz_arrugada: 1, cejas_abajo: 0.6, labio_sup_arriba: 0.5 }, postura: { columna: -3, cabeza: -2 } },
   // Rasgos no manuales frecuentes en lengua de señas.
-  pregunta_si_no: { rostro: { cejas_arriba: 1, ojos_abiertos: 0.5 } },   // cejas arriba
-  pregunta_abierta: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.3 } }, // ceño
+  pregunta_si_no: { rostro: { cejas_arriba: 1, ojos_abiertos: 0.5 }, postura: { columna: 5, cuello: 3, cabeza: 3 } },   // cejas arriba
+  pregunta_abierta: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.3 }, postura: { columna: 3, ladeo: 4 } }, // ceño
   mejillas_infladas: { rostro: { mejillas_infladas: 1 } },
   mejillas_hundidas: { rostro: { mejillas_hundidas: 1 } },
   labios_fruncidos: { rostro: { labios_fruncidos: 1 } },
@@ -101,18 +106,18 @@ export const EXPRESIONES = {
   // v58 · Rostro del intérprete real (video "Vocabulario Básico 2", Fundesor).
   // El ceño de pregunta_abierta acompaña toda la pregunta; sobre la seña
   // interrogativa misma la boca también se mueve:
-  pregunta_wh: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.3, boca_triste: 1, boca_apretada: 0.35 } }, // ¿dónde?, ¿cómo?, ¿por qué?, ¿quién?: comisuras abajo
-  pregunta_que: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.5, labio_sup_arriba: 0.6, labios_estirados: 0.4, boca_abierta: 0.15 } }, // ¿qué?: labio arriba, dientes
-  pregunta_cuando: { rostro: { ceno: 1, cejas_abajo: 0.4, ojos_entrecerrados: 0.2, labios_fruncidos: 0.8, boca_fruncida: 0.3 } }, // ¿cuándo?: labios en trompa
-  pregunta_cuanto: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.7, boca_apretada: 0.5, boca_triste: 0.35 } }, // ¿cuánto?, ¿cuál?: ojos entrecerrados
+  pregunta_wh: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.3, boca_triste: 1, boca_apretada: 0.35 }, postura: { columna: 3 } }, // ¿dónde?, ¿cómo?, ¿por qué?, ¿quién?: comisuras abajo
+  pregunta_que: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.5, labio_sup_arriba: 0.6, labios_estirados: 0.4, boca_abierta: 0.15 }, postura: { columna: 3 } }, // ¿qué?: labio arriba, dientes
+  pregunta_cuando: { rostro: { ceno: 1, cejas_abajo: 0.4, ojos_entrecerrados: 0.2, labios_fruncidos: 0.8, boca_fruncida: 0.3 }, postura: { columna: 3 } }, // ¿cuándo?: labios en trompa
+  pregunta_cuanto: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.7, boca_apretada: 0.5, boca_triste: 0.35 }, postura: { columna: 3 } }, // ¿cuánto?, ¿cuál?: ojos entrecerrados
   // v59 · Saludos y cortesía (video "Vocabulario Básico 1", Fundesor).
-  pregunta_amable: { rostro: { cejas_arriba: 0.8, ojos_abiertos: 0.3, sonrisa: 0.45 } }, // ¿cómo estás?: cejas arriba y media sonrisa
-  contento: { rostro: { cejas_arriba: 0.5, ojos_abiertos: 0.3, sonrisa: 0.55 } },       // BIEN
+  pregunta_amable: { rostro: { cejas_arriba: 0.8, ojos_abiertos: 0.3, sonrisa: 0.45 }, postura: { columna: 3, ladeo: 4 } }, // ¿cómo estás?: cejas arriba y media sonrisa
+  contento: { rostro: { cejas_arriba: 0.5, ojos_abiertos: 0.3, sonrisa: 0.55 }, postura: { cabeza: -3 } },       // BIEN
   sonrisa_suave: { rostro: { sonrisa: 0.5, ojos_entrecerrados: 0.5 } },                  // GRACIAS, CON GUSTO, BUENAS TARDES
-  somnoliento: { rostro: { ojos_cerrados: 0.45, ojos_entrecerrados: 0.4, sonrisa: 0.2 } }, // BUENAS NOCHES
-  pena: { rostro: { cejas_centro_arriba: 1, ceno: 0.3, boca_triste: 0.6, boca_apretada: 0.4 } }, // PERDÓN
-  lo_siento: { rostro: { cejas_centro_arriba: 0.8, ojos_cerrados: 0.8, boca_triste: 0.7 } },   // LO SIENTO: ojos cerrados
-  alegre: { rostro: { cejas_arriba: 0.7, ojos_abiertos: 0.3, sonrisa_abierta: 0.7 } },  // FELIZ CUMPLEAÑOS
+  somnoliento: { rostro: { ojos_cerrados: 0.45, ojos_entrecerrados: 0.4, sonrisa: 0.2 }, postura: { cabeza: 3, ladeo: 6 } }, // BUENAS NOCHES
+  pena: { rostro: { cejas_centro_arriba: 1, ceno: 0.3, boca_triste: 0.6, boca_apretada: 0.4 }, postura: { cuello: 2, cabeza: 5 } }, // PERDÓN
+  lo_siento: { rostro: { cejas_centro_arriba: 0.8, ojos_cerrados: 0.8, boca_triste: 0.7 }, postura: { cuello: 3, cabeza: 8 } },   // LO SIENTO: ojos cerrados
+  alegre: { rostro: { cejas_arriba: 0.7, ojos_abiertos: 0.3, sonrisa_abierta: 0.7 }, postura: { cabeza: -4 } },  // FELIZ CUMPLEAÑOS
   // Pronombres: labios hacia adelante; en ÉL/ELLA la mirada sigue al índice.
   pronombre: { rostro: { labios_fruncidos: 0.6 } },
   pronombre_izq: { rostro: { labios_fruncidos: 0.5, mirada_izq: 0.8 } },
@@ -123,6 +128,14 @@ export const EXPRESIONES = {
 
 const VELOCIDAD_ROSTRO = 14; // Con 14, llega al 95 % del gesto en unos 0,2 s.
 const VELOCIDAD_CABEZA = 9; // La cabeza pesa más que la piel: reacciona más lento.
+const VELOCIDAD_POSTURA = 5; // El tronco es aún más lento: llega en unos 0,6 s.
+const GRADOS = Math.PI / 180;
+// Hueso, eje del avatar y parte de cada componente de la postura que recibe.
+// La inclinación del tronco se reparte entre las tres vértebras para que se curve.
+const REPARTO_POSTURA = [
+  ['columna', 'columna0', [1, 0, 0], 0.3], ['columna', 'columna1', [1, 0, 0], 0.35], ['columna', 'columna2', [1, 0, 0], 0.35],
+  ['cuello', 'cuello', [1, 0, 0], 1], ['cabeza', 'cabeza', [1, 0, 0], 1], ['ladeo', 'cabeza', [0, 0, 1], 1],
+];
 const UMBRAL = 0.001; // Por debajo de este valor se considera que ya llegó.
 
 /* ==========================================================================
@@ -135,6 +148,13 @@ export class ControlFacial {
   #cabeza = null;
   #rotacionBase = new THREE.Quaternion();
   #cabezaModificada = false;
+  #huesosPostura = {}; // columna0..2, cuello, cabeza
+  #postura = { columna: { actual: 0, objetivo: 0 }, cuello: { actual: 0, objetivo: 0 },
+    cabeza: { actual: 0, objetivo: 0 }, ladeo: { actual: 0, objetivo: 0 } };
+  #basesPostura = new Map(); // hueso → rotación del clip, para deshacer después de dibujar
+  #qPostura = new THREE.Quaternion();
+  #qHueso = new THREE.Quaternion();
+  #ejePostura = new THREE.Vector3();
 
   // Objetos reutilizados: evitan crear basura en cada cuadro de animación.
   #ejeMundo = new THREE.Vector3();
@@ -150,10 +170,12 @@ export class ControlFacial {
    * @param {THREE.Mesh[]} opciones.mallas Mallas con morph targets.
    * @param {THREE.Bone} [opciones.cabeza] Hueso para asentir y negar.
    * @param {THREE.Object3D} opciones.modelo Raíz del avatar.
+   * @param {object} [opciones.huesos] Huesos para la postura: columna0, columna1, columna2, cuello.
    */
-  constructor({ mallas, cabeza = null, modelo }) {
+  constructor({ mallas, cabeza = null, modelo, huesos = {} }) {
     this.modelo = modelo;
     this.#cabeza = cabeza;
+    this.#huesosPostura = { ...huesos, cabeza };
 
     // Un modelo con varios materiales llega dividido en varias mallas. Cada
     // morph se registra en todas, porque si una parte no recibe el valor, la
@@ -194,7 +216,8 @@ export class ControlFacial {
     }
     this.expresion = clave;
 
-    const { rostro, cabeza } = EXPRESIONES[clave];
+    const { rostro, cabeza, postura = {} } = EXPRESIONES[clave];
+    for (const [parte, valor] of Object.entries(this.#postura)) valor.objetivo = (postura[parte] ?? 0) * GRADOS;
 
     for (const morph of this.#morphs.values()) morph.objetivo = 0;
 
@@ -216,6 +239,7 @@ export class ControlFacial {
   /** @param {number} delta Segundos desde el cuadro anterior. */
   afterMixer(delta) {
     this.#actualizarRostro(delta);
+    this.#actualizarPostura(delta);
     this.#actualizarCabeza(delta);
   }
 
@@ -224,9 +248,40 @@ export class ControlFacial {
    * cabeza, nadie reescribe ese hueso y el giro se acumularía cuadro a cuadro.
    */
   afterRender() {
-    if (!this.#cabezaModificada) return;
-    this.#cabeza.quaternion.copy(this.#rotacionBase);
-    this.#cabezaModificada = false;
+    if (this.#cabezaModificada) {
+      this.#cabeza.quaternion.copy(this.#rotacionBase);
+      this.#cabezaModificada = false;
+    }
+    // La postura también se deshace: el próximo cuadro parte otra vez del clip.
+    for (const [hueso, base] of this.#basesPostura) hueso.quaternion.copy(base);
+    this.#basesPostura.clear();
+  }
+
+  /** Inclinación sostenida (v61): se suma a la pose del clip, hueso por hueso. */
+  #actualizarPostura(delta) {
+    const factor = 1 - Math.exp(-VELOCIDAD_POSTURA * delta);
+    let hayPostura = false;
+    for (const valor of Object.values(this.#postura)) {
+      valor.actual = THREE.MathUtils.lerp(valor.actual, valor.objetivo, factor);
+      if (Math.abs(valor.actual - valor.objetivo) < UMBRAL * GRADOS) valor.actual = valor.objetivo;
+      if (valor.actual !== 0) hayPostura = true;
+    }
+    if (!hayPostura) return;
+
+    this.modelo.getWorldQuaternion(this.#qModelo);
+    // De la cadera hacia arriba: cada hueso usa su orientación ya inclinada.
+    for (const [parte, nombreHueso, eje, peso] of REPARTO_POSTURA) {
+      const hueso = this.#huesosPostura[nombreHueso];
+      const angulo = this.#postura[parte].actual * peso;
+      if (!hueso || angulo === 0) continue;
+      if (!this.#basesPostura.has(hueso)) this.#basesPostura.set(hueso, hueso.quaternion.clone());
+      // Igual que en los gestos: el eje del avatar se lleva al espacio del hueso.
+      hueso.getWorldQuaternion(this.#qHueso).invert();
+      this.#ejePostura.set(...eje).applyQuaternion(this.#qModelo).applyQuaternion(this.#qHueso).normalize();
+      this.#qPostura.setFromAxisAngle(this.#ejePostura, angulo);
+      hueso.quaternion.multiply(this.#qPostura);
+      hueso.updateMatrixWorld(true);
+    }
   }
 
   #actualizarRostro(delta) {

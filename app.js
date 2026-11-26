@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { ControlFacial, EXPRESIONES } from './control-facial.js?v=59';
+import { ControlFacial, EXPRESIONES } from './control-facial.js?v=61';
 // ?v= obliga al navegador a descargar la versión nueva tras un cambio.
 import { SecuenciadorSenas } from './secuenciador-senas.js?v=60';
 import { setEstilo } from './estilo-anime.js?v=51';
@@ -1351,8 +1351,11 @@ async function main() {
       generador: gltf.asset?.generator,
     });
 
-    const head = [...viewer.bones.values()].find((bone) => /head$/i.test(bone.name));
-    const facial = new ControlFacial({ mallas: viewer.morphMeshes, cabeza: head, modelo: viewer.model });
+    const hueso = (re) => [...viewer.bones.values()].find((bone) => re.test(bone.name));
+    const head = hueso(/head$/i);
+    // v61: huesos para la postura (inclinar el tronco en las preguntas de sí o no, etc.).
+    const huesos = { columna0: hueso(/spine$/i), columna1: hueso(/spine1$/i), columna2: hueso(/spine2$/i), cuello: hueso(/neck$/i) };
+    const facial = new ControlFacial({ mallas: viewer.morphMeshes, cabeza: head, modelo: viewer.model, huesos });
     const sequencer = new SecuenciadorSenas(viewer, facial, { carpeta: CONFIG.animaciones });
 
     // El orden importa: la cola decide antes del mixer y el rostro actúa después.
