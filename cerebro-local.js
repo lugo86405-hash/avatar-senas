@@ -62,6 +62,92 @@ const SEGUNDA_PERSONA = /(AS|ES|ASTE|ISTE)$/;
 const DETERMINANTES = new Set(['la', 'las', 'el', 'los', 'un', 'una', 'unos', 'unas', 'mis', 'tus', 'sus', 'nuestras',
   'nuestros', 'muchas', 'muchos', 'pocas', 'pocos', 'esas', 'esos', 'estas', 'estos', 'otras', 'otros']);
 const SUJETOS = new Set(['YO', 'TU', 'EL', 'ELLA', 'NOSOTROS', 'USTEDES', 'USTED', 'ELLOS']);
+
+// v63: números (video "Los Números en LSC" + Diccionario pp. 207-215)
+const VALOR_NUMERO = new Map(Object.entries({
+  CERO: 0, UNO: 1, DOS: 2, TRES: 3, CUATRO: 4, CINCO: 5, SEIS: 6, SIETE: 7, OCHO: 8,
+  NUEVE: 9, DIEZ: 10, ONCE: 11, DOCE: 12, TRECE: 13, CATORCE: 14, QUINCE: 15,
+  DIECISEIS: 16, DIECISIETE: 17, DIECIOCHO: 18, DIECINUEVE: 19, VEINTE: 20,
+  VEINTIUNO: 21, VEINTIUN: 21, VEINTIUNA: 21, VEINTIDOS: 22, VEINTITRES: 23, VEINTICUATRO: 24,
+  VEINTICINCO: 25, VEINTISEIS: 26, VEINTISIETE: 27, VEINTIOCHO: 28, VEINTINUEVE: 29,
+  TREINTA: 30, CUARENTA: 40, CINCUENTA: 50, SESENTA: 60, SETENTA: 70, OCHENTA: 80,
+  NOVENTA: 90, CIEN: 100, CIENTO: 100, DOSCIENTOS: 200, DOSCIENTAS: 200,
+  TRESCIENTOS: 300, TRESCIENTAS: 300, CUATROCIENTOS: 400, CUATROCIENTAS: 400,
+  QUINIENTOS: 500, QUINIENTAS: 500, SEISCIENTOS: 600, SEISCIENTAS: 600,
+  SETECIENTOS: 700, SETECIENTAS: 700, OCHOCIENTOS: 800, OCHOCIENTAS: 800,
+  NOVECIENTOS: 900, NOVECIENTAS: 900,
+}));
+const MULTIPLICADORES = new Map([['MIL', 1000], ['MILLON', 1000000], ['MILLONES', 1000000]]);
+const DIGITOS = ['CERO', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+const UNO_A_DIECINUEVE = [...DIGITOS, 'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE',
+  'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
+const DECENAS = new Map([[20, 'VEINTE'], [30, 'TREINTA'], [40, 'CUARENTA'], [50, 'CINCUENTA'],
+  [60, 'SESENTA'], [70, 'SETENTA'], [80, 'OCHENTA'], [90, 'NOVENTA']]);
+const CENTENAS = ['', 'CIEN', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS',
+  'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+
+/** Lee un número con cifras o palabras desde i: [valor, palabras usadas, cifras|null] o null. */
+function leerNumero(normas, i) {
+  const w0 = normas[i];
+  if (/^[0-9]+$/.test(w0)) return [Number(w0), 1, w0];
+  let total = 0;
+  let actual = 0;
+  let k = i;
+  let antes = null;
+  while (k < normas.length) {
+    const w = normas[k];
+    const sig = k + 1 < normas.length ? normas[k + 1] : null;
+    if ((w === 'UN' || w === 'UNA') && MULTIPLICADORES.has(sig) && [null, 'centena', 'mult'].includes(antes)) {
+      actual += 1;
+      antes = 'unidad';
+    } else if (VALOR_NUMERO.has(w)) {
+      const v = VALOR_NUMERO.get(w);
+      if (!(antes === null || antes === 'mult' || (antes === 'centena' && v < 100))) break;
+      actual += v;
+      antes = v >= 100 ? 'centena' : (v >= 20 && v % 10 === 0 ? 'decena' : 'unidad');
+    } else if (w === 'Y' && antes === 'decena' && VALOR_NUMERO.has(sig)
+        && VALOR_NUMERO.get(sig) >= 1 && VALOR_NUMERO.get(sig) <= 9) {
+      actual += VALOR_NUMERO.get(sig);
+      antes = 'unidad';
+      k += 1;
+    } else if (MULTIPLICADORES.has(w) && antes !== 'mult') {
+      if (MULTIPLICADORES.get(w) === 1000) total += (actual || 1) * 1000;
+      else total = (total + (actual || 1)) * 1000000;
+      actual = 0;
+      antes = 'mult';
+    } else break;
+    k += 1;
+  }
+  if (k === i) return null;
+  return [total + actual, k - i, null];
+}
+
+/** Glosas LSC de un número: 25 -> DOS CINCO; 2026 -> DOS MIL DOS SEIS; 300 -> TRESCIENTOS. */
+function senasNumero(n, cifras = null) {
+  if (cifras !== null && (cifras.length >= 8 || (cifras.length > 1 && cifras[0] === '0'))) {
+    return [...cifras].map((c) => DIGITOS[Number(c)]);   // teléfonos y códigos: cifra por cifra
+  }
+  if (n < 20) return [UNO_A_DIECINUEVE[n]];
+  const out = [];
+  if (n >= 1000000) {
+    const m = Math.floor(n / 1000000);
+    n %= 1000000;
+    out.push(...(m === 1 ? [] : senasNumero(m)), 'MILLON');
+  }
+  if (n >= 1000) {
+    const m = Math.floor(n / 1000);
+    n %= 1000;
+    out.push(...(m === 1 ? [] : senasNumero(m)), 'MIL');
+  }
+  if (n >= 100) {
+    out.push(CENTENAS[Math.floor(n / 100)]);
+    n %= 100;
+  }
+  if (n === 0) return out;
+  if (n < 20) return [...out, UNO_A_DIECINUEVE[n]];
+  if (DECENAS.has(n)) return [...out, DECENAS.get(n)];
+  return [...out, DIGITOS[Math.floor(n / 10)], DIGITOS[n % 10]];
+}
 const MARCAS = { pregunta_abierta: '(?)', pregunta_si_no: '(?)', exclamativa: '(!)' };
 
 export class CerebroLocal {
@@ -104,6 +190,7 @@ export class CerebroLocal {
 
   /** Divide en oraciones por la puntuación y marca preguntas y exclamaciones. */
   #oraciones(texto) {
+    texto = texto.replace(/(?<=\d)[.,](?=\d{3}(?!\d))/g, '');   // v63: "2.000" es un número
     const oraciones = [];
     let actual = { texto: '', pregunta: false, exclamacion: false };
     const cerrar = () => {
@@ -191,6 +278,14 @@ export class CerebroLocal {
       }
       const b = bajas[i];
       const n = normas[i];
+      const numero = leerNumero(normas, i);              // v63: números compuestos
+      if (numero !== null) {
+        const [valor, usadas, cifras] = numero;
+        const origen = palabras.slice(i, i + usadas).join(' ');
+        for (const g of senasNumero(valor, cifras)) items.push({ glosa: g, origen, relativo: false });
+        i += usadas;
+        continue;
+      }
       const siguienteNorma = i + 1 < normas.length ? normas[i + 1] : null;
       const sig = siguienteNorma === null ? null : (this.sinonimos.get(siguienteNorma) ?? siguienteNorma);
       let glosa = null;
