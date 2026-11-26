@@ -98,6 +98,17 @@ export const EXPRESIONES = {
   mejillas_hundidas: { rostro: { mejillas_hundidas: 1 } },
   labios_fruncidos: { rostro: { labios_fruncidos: 1 } },
   lengua_fuera: { rostro: { lengua_fuera: 1 } },
+  // v58 · Rostro del intérprete real (video "Vocabulario Básico 2", Fundesor).
+  // El ceño de pregunta_abierta acompaña toda la pregunta; sobre la seña
+  // interrogativa misma la boca también se mueve:
+  pregunta_wh: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.3, boca_triste: 1, boca_apretada: 0.35 } }, // ¿dónde?, ¿cómo?, ¿por qué?, ¿quién?: comisuras abajo
+  pregunta_que: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.5, labio_sup_arriba: 0.6, labios_estirados: 0.4, boca_abierta: 0.15 } }, // ¿qué?: labio arriba, dientes
+  pregunta_cuando: { rostro: { ceno: 1, cejas_abajo: 0.4, ojos_entrecerrados: 0.2, labios_fruncidos: 0.8, boca_fruncida: 0.3 } }, // ¿cuándo?: labios en trompa
+  pregunta_cuanto: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.7, boca_apretada: 0.5, boca_triste: 0.35 } }, // ¿cuánto?, ¿cuál?: ojos entrecerrados
+  // Pronombres: labios hacia adelante; en ÉL/ELLA la mirada sigue al índice.
+  pronombre: { rostro: { labios_fruncidos: 0.6 } },
+  pronombre_izq: { rostro: { labios_fruncidos: 0.5, mirada_izq: 0.8 } },
+  pronombre_der: { rostro: { labios_fruncidos: 0.5, mirada_der: 0.8 } },
   asentir: { rostro: { sonrisa: 0.4 }, cabeza: 'asentir' },
   negar: { rostro: { cejas_abajo: 0.5 }, cabeza: 'negar' },
 };

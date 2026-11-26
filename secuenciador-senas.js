@@ -45,7 +45,7 @@ export const CONFIG_SECUENCIA = {
   clipIdle: 'Reposo', // Clip del avatar al que se vuelve entre secuencias.
   // Se agrega como ?v= a cada clip. Súbelo al regenerar las animaciones: si no,
   // el navegador puede usar un clip viejo de su caché (hecho para otro esqueleto).
-  version: 57,
+  version: 58,
 };
 
 export class SecuenciadorSenas extends EventTarget {

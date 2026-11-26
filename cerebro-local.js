@@ -85,6 +85,7 @@ export class CerebroLocal {
     this.noVerbos = conjunto(g.no_verbos);
     this.sustantivosVerbales = conjunto(g.sustantivos_verbales);
     this.cliticos = g.cliticos ?? []; // v57: los más largos primero
+    this.rostroPregunta = new Map(Object.entries(g.rostro_pregunta ?? {})); // v58
     this.senas = new Map(Object.entries(datos.diccionario.senas));
     this.letras = new Map(Object.entries(datos.diccionario.letras));
   }
@@ -285,7 +286,11 @@ export class CerebroLocal {
       if (this.cortesia.has(x.glosa)) x.expresion = null;              // conserva la suya
       else if (tipo === 'negativa') x.expresion = contiene(negados, x) ? 'negar' : emocion;
       else if (x.glosa === 'NO') x.expresion = null;                   // el clip ya niega
-      else x.expresion = expresion;
+      else if (tipo === 'pregunta_abierta' && !x.relativo
+        && (this.interrogativas.has(x.glosa) || this.preguntasFijas.has(x.glosa))) {
+        x.expresion = this.rostroPregunta.get(x.glosa) ?? 'pregunta_wh'; // v58: cara de la seña
+      } else x.expresion = expresion;
+      if (x.relativo && x.expresion === null) x.expresion = 'neutral';  // "donde vivo": sin ceño
     }
 
     return {
