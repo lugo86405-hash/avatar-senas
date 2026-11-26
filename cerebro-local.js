@@ -179,6 +179,9 @@ export class CerebroLocal {
       if (expresion) {                                   // expresiones de varias palabras
         const { partes, glosa } = expresion;
         const origen = palabras.slice(i, i + partes.length).join(' ');
+        for (const b_ of bajas.slice(i, i + partes.length)) {   // v62: "¡qué asco!" también pone la cara
+          if (this.emociones.has(b_)) emocion = this.emociones.get(b_);
+        }
         for (const g of glosa.split(/\s+/).filter(Boolean)) {
           items.push({ glosa: g, origen });
           if (this.interrogativas.has(g)) o.pregunta = true;
