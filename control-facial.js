@@ -85,7 +85,7 @@ export const EXPRESIONES = {
   boca_abierta: { rostro: { boca_abierta: 0.8 } },
   sorpresa: { rostro: { cejas_arriba: 1, ojos_abiertos: 0.9, boca_fruncida: 0.9 } },
   tristeza: { rostro: { cejas_centro_arriba: 1, ojos_tristes: 0.8, boca_triste: 0.9 } },
-  ruego: { rostro: { cejas_centro_arriba: 0.7, sonrisa: 0.3 } }, // petición amable (POR_FAVOR)
+  ruego: { rostro: { cejas_centro_arriba: 0.8, ojos_entrecerrados: 0.6, boca_apretada: 0.3, sonrisa: 0.15 } }, // petición (POR_FAVOR, PERMISO); v59 según el video
   enojo: { rostro: { cejas_abajo: 1, ojos_enojo: 1, boca_apretada: 0.9 } },
   duda: { rostro: { ceja_izq_arriba: 1, boca_lado: 1 } },
   guino: { rostro: { guino: 1, sonrisa: 0.8 } },
@@ -105,6 +105,14 @@ export const EXPRESIONES = {
   pregunta_que: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.5, labio_sup_arriba: 0.6, labios_estirados: 0.4, boca_abierta: 0.15 } }, // ¿qué?: labio arriba, dientes
   pregunta_cuando: { rostro: { ceno: 1, cejas_abajo: 0.4, ojos_entrecerrados: 0.2, labios_fruncidos: 0.8, boca_fruncida: 0.3 } }, // ¿cuándo?: labios en trompa
   pregunta_cuanto: { rostro: { ceno: 1, cejas_abajo: 0.5, ojos_entrecerrados: 0.7, boca_apretada: 0.5, boca_triste: 0.35 } }, // ¿cuánto?, ¿cuál?: ojos entrecerrados
+  // v59 · Saludos y cortesía (video "Vocabulario Básico 1", Fundesor).
+  pregunta_amable: { rostro: { cejas_arriba: 0.8, ojos_abiertos: 0.3, sonrisa: 0.45 } }, // ¿cómo estás?: cejas arriba y media sonrisa
+  contento: { rostro: { cejas_arriba: 0.5, ojos_abiertos: 0.3, sonrisa: 0.55 } },       // BIEN
+  sonrisa_suave: { rostro: { sonrisa: 0.5, ojos_entrecerrados: 0.5 } },                  // GRACIAS, CON GUSTO, BUENAS TARDES
+  somnoliento: { rostro: { ojos_cerrados: 0.45, ojos_entrecerrados: 0.4, sonrisa: 0.2 } }, // BUENAS NOCHES
+  pena: { rostro: { cejas_centro_arriba: 1, ceno: 0.3, boca_triste: 0.6, boca_apretada: 0.4 } }, // PERDÓN
+  lo_siento: { rostro: { cejas_centro_arriba: 0.8, ojos_cerrados: 0.8, boca_triste: 0.7 } },   // LO SIENTO: ojos cerrados
+  alegre: { rostro: { cejas_arriba: 0.7, ojos_abiertos: 0.3, sonrisa_abierta: 0.7 } },  // FELIZ CUMPLEAÑOS
   // Pronombres: labios hacia adelante; en ÉL/ELLA la mirada sigue al índice.
   pronombre: { rostro: { labios_fruncidos: 0.6 } },
   pronombre_izq: { rostro: { labios_fruncidos: 0.5, mirada_izq: 0.8 } },
