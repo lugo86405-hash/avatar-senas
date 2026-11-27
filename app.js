@@ -14,6 +14,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { ControlFacial } from './control-facial.js?v=64';
 // ?v= obliga al navegador a descargar la versión nueva tras un cambio.
 import { SecuenciadorSenas } from './secuenciador-senas.js?v=66';
@@ -86,13 +87,17 @@ const CONFIG = {
     visibleWidth: 0.58, // Caben las dos manos abiertas a los lados (BIENVENIDO).
   },
 
+  // v69: iluminación de estudio. El ambiente (una sala virtual que se refleja en
+  // la piel y la tela) reemplaza casi toda la luz plana de antes; la principal
+  // proyecta sombras suaves (las manos sobre el pecho dan profundidad) y la de
+  // borde, más fuerte, separa la silueta del fondo para leer bien manos y brazos.
   lights: {
-    ambient: { color: 0xffffff, intensity: 0.9 },
-    // Direccional principal: da volumen. Las otras dos suavizan las sombras
-    // y separan la silueta del fondo, lo que ayuda a leer manos y brazos.
-    key: { color: 0xfff4e6, intensity: 2.2, position: [2, 4, 3] },
-    fill: { color: 0xdfe9ff, intensity: 0.8, position: [-3, 2, 2] },
-    rim: { color: 0xffffff, intensity: 0.8, position: [0, 3, -4] },
+    ambient: { color: 0xffffff, intensity: 0.25 },
+    key: { color: 0xffe9d6, intensity: 2.4, position: [2.4, 3.0, 2.3] },
+    fill: { color: 0xdde7ff, intensity: 0.4, position: [-3, 2, 2] },
+    rim: { color: 0xfff6ea, intensity: 1.6, position: [-0.8, 2.6, -3.5] },
+    entorno: 0.45,            // intensidad del ambiente (scene.environmentIntensity)
+    sombras: true,            // ?sombras=0 las apaga en equipos lentos
   },
 
   animation: {
@@ -150,6 +155,7 @@ class AvatarViewer {
     this.#createCamera();
     this.#createRenderer();
     this.#createLights();
+    this.#createEnvironment();
     this.#createControls();
     this.#observeResize();
   }
@@ -162,7 +168,10 @@ class AvatarViewer {
     // v65: un solo THREE.Color que cambia con el tema (estilo-anime.js guarda esta
     // misma referencia como fondo realista, así que también la sigue).
     this.colorFondo = new THREE.Color(TEMAS[temaActual()].escena);
-    this.scene.background = MODO_OVERLAY ? null : this.colorFondo;
+    // v69: fondo de estudio (más claro detrás del avatar, más oscuro en los bordes).
+    // Es una textura que se repinta en el mismo objeto cuando cambia el tema.
+    this.fondoEstudio = fondoEstudio(this.colorFondo);
+    this.scene.background = MODO_OVERLAY ? null : this.fondoEstudio.textura;
   }
 
   #createCamera() {
@@ -178,19 +187,47 @@ class AvatarViewer {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: MODO_OVERLAY });
     if (MODO_OVERLAY) this.renderer.setClearColor(0x000000, 0);
     this.renderer.toneMapping = THREE.NeutralToneMapping; // Respeta mejor el tono de piel.
+    // v69: sombras suaves (PCF con radio). En equipos lentos: ?sombras=0.
+    this.renderer.shadowMap.enabled = CONFIG.lights.sombras && PARAMS.get('sombras') !== '0';
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.container.appendChild(this.renderer.domElement);
   }
 
   #createLights() {
     const { ambient, key, fill, rim } = CONFIG.lights;
 
+    // El orden importa: estilo-anime.js las recorre como ambiental, principal, relleno, borde.
     this.scene.add(new THREE.AmbientLight(ambient.color, ambient.intensity));
 
-    for (const { color, intensity, position } of [key, fill, rim]) {
+    const luces = [key, fill, rim].map(({ color, intensity, position }) => {
       const light = new THREE.DirectionalLight(color, intensity);
       light.position.set(...position);
       this.scene.add(light);
-    }
+      return light;
+    });
+
+    // Sombras de la luz principal sobre el propio avatar (brazos y manos sobre el torso).
+    const principal = luces[0];
+    principal.target.position.set(0, 1.25, 0);
+    this.scene.add(principal.target);
+    principal.castShadow = true;
+    const movil = Math.min(window.innerWidth, window.innerHeight) < 700;
+    principal.shadow.mapSize.set(movil ? 1024 : 2048, movil ? 1024 : 2048);
+    Object.assign(principal.shadow.camera, { left: -0.7, right: 0.7, top: 0.9, bottom: -0.9, near: 1, far: 9 });
+    principal.shadow.bias = -0.0004;
+    principal.shadow.normalBias = 0.012;
+    principal.shadow.radius = 4;
+    this.luzPrincipal = principal;
+  }
+
+  /** v69: una sala virtual como luz de ambiente: da reflejos suaves en la piel y la tela. */
+  #createEnvironment() {
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const sala = new RoomEnvironment();
+    this.scene.environment = pmrem.fromScene(sala, 0.04).texture;
+    this.scene.environmentIntensity = CONFIG.lights.entorno;
+    sala.dispose?.();
+    pmrem.dispose();
   }
 
   #createControls() {
@@ -259,6 +296,13 @@ class AvatarViewer {
       if (node.isSkinnedMesh) node.frustumCulled = false;
 
       if (node.morphTargetDictionary) this.morphMeshes.push(node);
+
+      // v69: el avatar se hace sombra a sí mismo, y los materiales se ajustan a la luz nueva.
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+        (Array.isArray(node.material) ? node.material : [node.material]).forEach(mejorarMaterial);
+      }
     });
   }
 
@@ -463,6 +507,73 @@ class AvatarViewer {
 }
 
 
+
+/* ==========================================================================
+   v69 · Fondo de estudio y materiales
+   ========================================================================== */
+
+/**
+ * Fondo con viñeta: el color del tema detrás del avatar, más claro en el centro y
+ * más oscuro hacia los bordes, como un fondo de estudio fotográfico. Devuelve la
+ * textura y una función para repintarla (cambio de tema) sin cambiar el objeto,
+ * porque estilo-anime.js guarda esta misma referencia como fondo realista.
+ */
+function fondoEstudio(color) {
+  const lienzo = document.createElement('canvas');
+  lienzo.width = 256;
+  lienzo.height = 256;
+  const textura = new THREE.CanvasTexture(lienzo);
+  textura.colorSpace = THREE.SRGBColorSpace;
+  const pintar = (base) => {
+    const ctx = lienzo.getContext('2d');
+    const c = base.clone();
+    const claro = c.clone().lerp(new THREE.Color(0xffffff), c.getHSL({}).l > 0.5 ? 0.35 : 0.1);
+    const oscuro = c.clone().multiplyScalar(c.getHSL({}).l > 0.5 ? 0.82 : 0.45);
+    const g = ctx.createRadialGradient(128, 95, 10, 128, 120, 190);
+    g.addColorStop(0, `#${claro.getHexString(THREE.SRGBColorSpace)}`);
+    g.addColorStop(0.55, `#${c.getHexString(THREE.SRGBColorSpace)}`);
+    g.addColorStop(1, `#${oscuro.getHexString(THREE.SRGBColorSpace)}`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
+    textura.needsUpdate = true;
+  };
+  pintar(color);
+  return { textura, pintar };
+}
+
+/**
+ * Ajusta un material del modelo para la luz de estudio:
+ *  - piel: un brillo cálido y suave en los bordes (sheen), que imita la luz que
+ *    atraviesa la piel, y un poco menos de reflejo especular (se veía plástica);
+ *  - cabello y pestañas: menos reflejo del ambiente;
+ *  - tela: algo más mate.
+ * Se aplica antes de estilo-anime.js, que guarda estos materiales como los realistas.
+ */
+function mejorarMaterial(m) {
+  if (!m || m.userData.v69) return;
+  m.userData.v69 = true;
+  const nombre = (m.name ?? '').toLowerCase();
+  if (/piel|skin|cara|labio/.test(nombre)) {
+    m.roughness = Math.max(m.roughness ?? 0.6, 0.55);
+    if ('sheen' in m) {
+      m.sheen = 0.15;
+      m.sheenColor = new THREE.Color(0.85, 0.35, 0.25);
+      m.sheenRoughness = 0.6;
+    }
+    if ('specularIntensity' in m) m.specularIntensity = 0.4;
+    m.envMapIntensity = 0.55;            // el reflejo del ambiente blanqueaba la piel
+    return void (m.needsUpdate = true);
+  } else if (/cabello|pelo|hair|pesta/.test(nombre)) {
+    m.envMapIntensity = 0.35;            // el pelo no debe brillar como plástico
+    return void (m.needsUpdate = true);
+  } else if (/ropa|saco|camisa|pantal|corbata|solapa/.test(nombre)) {
+    m.roughness = Math.min(1, Math.max(m.roughness ?? 0.6, 0.72));
+    if ('specularIntensity' in m) m.specularIntensity = Math.min(m.specularIntensity ?? 1, 0.5);
+  }
+  if (m.envMapIntensity !== undefined) m.envMapIntensity = 1;
+  m.needsUpdate = true;
+}
+
 /* ==========================================================================
    v65 · Temas: Arena clara y Alto contraste (el oscuro)
    ========================================================================== */
@@ -482,6 +593,7 @@ function aplicarTema(tema, viewer, guardar = false) {
   document.documentElement.dataset.tema = tema;
   document.getElementById('meta-tema')?.setAttribute('content', datos.barra);
   viewer?.colorFondo?.set(datos.escena);
+  viewer?.fondoEstudio?.pintar(viewer.colorFondo);   // v69: repinta el fondo de estudio
   document.querySelectorAll('.boton-tema').forEach((boton) => {
     boton.setAttribute('aria-pressed', String(tema === 'oscuro'));
     boton.querySelector('.boton-tema-texto').textContent = datos.boton.slice(2);
@@ -1712,7 +1824,7 @@ function setupDevUi(viewer, sequencer) {
   });
 }
 
-console.info('[Puente LSC] app.js versión 68 (personas en el espacio) cargada');
+console.info('[Puente LSC] app.js versión 69 (luz de estudio y materiales) cargada');
 
 async function main() {
   let viewer;

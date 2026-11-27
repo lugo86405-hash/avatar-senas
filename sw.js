@@ -16,7 +16,7 @@ const INICIALES = [
   './',
   './index.html',
   './style.css?v=65',
-  './app.js?v=68',
+  './app.js?v=69',
   './validacion.js?v=65',
   './validaciones.json',
   './cerebro-local.js?v=68',
