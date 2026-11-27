@@ -20,7 +20,7 @@ import { SecuenciadorSenas } from './secuenciador-senas.js?v=66';
 import { setEstilo } from './estilo-anime.js?v=51';
 import { TransicionNatural } from './transicion-natural.js?v=51';
 import { InterpreteVivo } from './interprete-vivo.js?v=55';
-import { CerebroLocal } from './cerebro-local.js?v=67';
+import { CerebroLocal } from './cerebro-local.js?v=68';
 import { Validacion, ESTADOS, FALLAS } from './validacion.js?v=65';
 
 /* ==========================================================================
@@ -1235,17 +1235,20 @@ function actualizarTarjeta() {
 /* v67: verbos direccionales. AYUDAR_2_1 va de 2 (tú) a 1 (yo); 3D y 3I son la tercera
    persona a la derecha (donde señala ELLA) y a la izquierda (donde señala ÉL). */
 const DIRECCIONAL = /^(.+)_(1|2|3D|3I)_(1|2|3D|3I)$/;
+const SENALA = /^(EL|ELLA)_(3D|3I)$/;                       // v68: ÉL o ELLA señalando el otro lado
 const LUGAR_LEGIBLE = { 1: 'yo', 2: 'tú', '3D': 'der.', '3I': 'izq.' };
 
 /** La seña de base de un verbo direccional (AYUDAR_2_1 -> AYUDAR); las demás, igual. */
 function glosaBase(glosa) {
-  return DIRECCIONAL.exec(glosa ?? '')?.[1] ?? glosa;
+  return DIRECCIONAL.exec(glosa ?? '')?.[1] ?? SENALA.exec(glosa ?? '')?.[1] ?? glosa;
 }
 
 /** AYUDAR_2_1 -> "AYUDAR (tú→yo)", para mostrar. */
 function glosaLegible(glosa) {
   const m = DIRECCIONAL.exec(glosa ?? '');
-  return m ? `${m[1]} (${LUGAR_LEGIBLE[m[2]]}→${LUGAR_LEGIBLE[m[3]]})` : glosa;
+  if (m) return `${m[1]} (${LUGAR_LEGIBLE[m[2]]}→${LUGAR_LEGIBLE[m[3]]})`;
+  const s = SENALA.exec(glosa ?? '');
+  return s ? `${s[1]} (${LUGAR_LEGIBLE[s[2]]})` : glosa;
 }
 
 /** Chip de la seña actual: validada, con video, etc. Las letras del deletreo no llevan. */
@@ -1709,7 +1712,7 @@ function setupDevUi(viewer, sequencer) {
   });
 }
 
-console.info('[Puente LSC] app.js versión 67 (verbos direccionales) cargada');
+console.info('[Puente LSC] app.js versión 68 (personas en el espacio) cargada');
 
 async function main() {
   let viewer;

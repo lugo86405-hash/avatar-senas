@@ -194,6 +194,8 @@ export class CerebroLocal {
     this.femeninos = new Set(d.femeninos ?? []);
     this.irregularesPersona = new Map(Object.entries(d.irregulares_persona ?? {}));
     this.pegadosFijos = new Map(Object.entries(d.pegados_fijos ?? {}));
+    this.personas = new Set(d.personas ?? []);                // v68
+    this.lugarPropio = new Map(Object.entries(d.lugar_propio ?? {}));
     this.senas = new Map(Object.entries(datos.diccionario.senas));
     this.letras = new Map(Object.entries(datos.diccionario.letras));
   }
@@ -300,11 +302,79 @@ export class CerebroLocal {
     return null;
   }
 
-  /** Pone a los verbos direccionales el recorrido (x.direccion) y quita los pronombres objeto que ya dice el verbo. */
-  #direccionar(items, bajas, normas) {
+  /* ----- v68: personas ubicadas en el espacio y recordadas entre oraciones ----- */
+
+  #genero(n) {
+    return this.femeninos.has(n) || ((n.endsWith('A') || n.endsWith('AS')) && !this.masculinosEnA.has(n)) ? 'f' : 'm';
+  }
+
+  /** Lugar de una tercera persona; la primera vez va a su lado (ella derecha, él izquierda) o al libre. */
+  #ubicar(memoria, clave) {
+    const lugares = memoria.lugar;
+    if (!lugares.has(clave)) {
+      const preferido = clave.endsWith(':f') ? '3D' : '3I';
+      const otro = preferido === '3D' ? '3I' : '3D';
+      const usados = new Set(lugares.values());
+      const lugar = !usados.has(preferido) ? preferido : !usados.has(otro) ? otro : preferido;
+      for (const [c, l] of [...lugares]) {
+        if (l === lugar) {                               // quien estaba ahí deja el lugar
+          lugares.delete(c);
+          memoria.recientes.splice(memoria.recientes.indexOf(c), 1);
+        }
+      }
+      lugares.set(clave, lugar);
+    }
+    const k = memoria.recientes.indexOf(clave);
+    if (k >= 0) memoria.recientes.splice(k, 1);
+    memoria.recientes.push(clave);
+    return lugares.get(clave);
+  }
+
+  /** Clave de la última persona nombrada (del género pedido y que no esté en `excluir`). */
+  #referente(memoria, genero = null, excluir = null) {
+    for (let k = memoria.recientes.length - 1; k >= 0; k -= 1) {
+      const c = memoria.recientes[k];
+      if ((genero === null || c.endsWith(`:${genero}`)) && memoria.lugar.get(c) !== excluir) return c;
+    }
+    return null;
+  }
+
+  /** Clave de memoria si el item nombra a una persona (sustantivo de persona o nombre propio). */
+  #clavePersona(x, normas, palabras) {
+    const p = x.pos;
+    if (p === undefined || p === null) return null;
+    const n = normas[p];
+    if (this.personas.has(x.glosa)) return `${x.glosa}:${this.#genero(n)}`;
+    const inicial = palabras[p].slice(0, 1);
+    const mayuscula = inicial !== inicial.toLowerCase() && inicial === inicial.toUpperCase();
+    if (mayuscula && /^\p{L}+$/u.test(n) && n.length > 2 && n === x.glosa && !this.vocabulario.has(n)
+        && !this.sinonimos.has(n) && !this.omitir.has(n) && this.verboBase(n) === null) {
+      return `${n}:${this.#genero(n)}`;
+    }
+    return null;
+  }
+
+  /** Pone a los verbos direccionales el recorrido (x.direccion), ubica a las personas en el espacio
+   *  (recordándolas entre oraciones con `memoria`) y quita los pronombres objeto que ya dice el verbo. */
+  #direccionar(items, bajas, normas, palabras = bajas, memoria = { lugar: new Map(), recientes: [] }) {
     const quitar = new Set();
     const conPos = (y) => y.pos !== undefined && y.pos !== null;
+    const lugarDe = (y) => y.lugarMem;
+    const verPersona = (y) => {
+      if ('lugarMem' in y) return y.lugarMem;
+      let clave = this.#clavePersona(y, normas, palabras);
+      if (clave) {
+        y.lugarMem = this.#ubicar(memoria, clave);
+      } else if (this.lugarPropio.has(y.glosa)) {        // ÉL / ELLA: la última persona de su género
+        const g = y.glosa === 'ELLA' ? 'f' : 'm';
+        clave = this.#referente(memoria, g) || `${y.glosa}:${g}`;
+        y.lugarMem = this.#ubicar(memoria, clave);
+        if (y.lugarMem !== this.lugarPropio.get(y.glosa)) y.direccion = y.lugarMem;   // ELLA_3I
+      }
+      return y.lugarMem;
+    };
     for (const x of items) {
+      verPersona(x);
       const verbo = x.glosa;
       const p = x.pos;
       if (!this.direccionales.has(verbo) || !conPos(x)) continue;
@@ -314,18 +384,18 @@ export class CerebroLocal {
       let sujeto = null;
       const pegado = this.#cliticoPegado(verbo, n);
       const forma = pegado ? b.slice(0, b.length - pegado.length) : b;
+      let clitico = null;
       if (pegado) {
         for (const c0 of ['NOS', 'LES', 'LOS', 'LAS', 'ME', 'TE', 'SE', 'LE', 'LO', 'LA']) {
           if (pegado.startsWith(c0)) {
             let c = c0.toLowerCase();
             if (c === 'se') c = pegado.length > 2 ? 'le' : null;
             if (['lo', 'la', 'los', 'las'].includes(c) && !this.direccionales.get(verbo)) c = null;
-            objeto = c ? (this.lugarClitico.get(c) ?? null) : null;
+            clitico = c;
             break;
           }
         }
-      }
-      if (objeto === null) {
+      } else {
         const cadena = [];
         let k = p - 1;
         if (this.#personaForma(forma) === null) {         // "me puedes ayudar", "te voy a pagar"
@@ -344,8 +414,12 @@ export class CerebroLocal {
           let c = cadena[0];
           if (c === 'se') c = cadena.length > 1 ? 'le' : null;
           if (['lo', 'la', 'los', 'las'].includes(c) && (cadena.length > 1 || !this.direccionales.get(verbo))) c = null;
-          objeto = c ? (this.lugarClitico.get(c) ?? null) : null;
+          clitico = c;
         }
+      }
+      if (clitico) {
+        objeto = this.lugarClitico.get(clitico);
+        if (objeto[0] === '3') objeto = '3';              // se decide abajo, con la memoria
       }
       // "a mí", "a ti", "a ella", "a mi mamá" después del verbo
       for (let k = p + 1; k < Math.min(p + 6, bajas.length - 1); k += 1) {
@@ -355,22 +429,29 @@ export class CerebroLocal {
         if (bajas[k] === 'a' && this.lugarTrasA.has(bajas[j]) && !(
           bajas[j] === 'mi' && j + 1 < bajas.length && !this.omitir.has(normas[j + 1]))) {
           lugar = this.lugarTrasA.get(bajas[j]);
-          for (const y of items) if (y.pos === j) quitar.add(y);
+          for (const y of items) {
+            if (y.pos === j) {
+              quitar.add(y);
+              if (lugar[0] === '3') lugar = verPersona(y) || lugar;
+            }
+          }
         } else if (objeto === null || objeto === '3') {
           while (j < bajas.length - 1 && this.antesDelNombre.has(bajas[j])) j += 1;
           if (!this.omitir.has(normas[j]) && !this.esVerbo(this.sinonimos.get(normas[j]) ?? normas[j])) {
-            lugar = bajas[k] === 'al' ? '3I' : this.#lugarSustantivo(normas[j]);
+            const destino = items.filter((y) => y.pos === j);
+            lugar = destino.length ? (verPersona(destino[0]) ?? null) : null;
+            if (lugar === null) lugar = bajas[k] === 'al' ? '3I' : this.#lugarSustantivo(normas[j]);
           }
         }
         if (lugar && (objeto === null || (objeto === '3' && lugar[0] === '3'))) objeto = lugar;
         break;
       }
       if (objeto === null) continue;
-      // sujeto: pronombre dicho antes del verbo, o la persona de la forma verbal
+      // sujeto: pronombre o persona nombrada antes del verbo, o la persona de la forma verbal
       const previos = items.filter((y) => conPos(y) && y.pos < p);
       for (const y of [...previos].reverse()) {
         if (this.lugarPronombre.has(y.glosa) && !(y.pos > 0 && bajas[y.pos - 1] === 'a')) {
-          sujeto = this.lugarPronombre.get(y.glosa);
+          sujeto = lugarDe(y) || this.lugarPronombre.get(y.glosa);
           break;
         }
       }
@@ -386,13 +467,22 @@ export class CerebroLocal {
           }
         }
         if (persona === '3') {
-          const antes = previos.filter((y) => !this.verbos.has(y.glosa) && !['MIO', 'TU', 'SUYO', 'NO', 'NUESTRO'].includes(y.glosa));
-          if (antes.length) persona = this.#lugarSustantivo(normas[antes.at(-1).pos]);
-          else persona = quitarTildes(forma).endsWith('n') ? '3' : '2';   // "ayuda a tu hermano": una orden
+          const antes = previos.filter((y) => lugarDe(y) && !(y.pos > 0 && ['a', 'al'].includes(bajas[y.pos - 1])));
+          if (antes.length) {
+            persona = lugarDe(antes.at(-1));
+          } else {
+            const ref = this.#referente(memoria, null, objeto);
+            if (ref && (objeto !== '3' || memoria.recientes.length > 1)) persona = memoria.lugar.get(ref);
+            else if (!quitarTildes(forma).endsWith('n')) persona = '2';   // "ayuda a tu hermano": una orden
+          }
         }
         sujeto = persona || (objeto === '1' ? '2' : '1');
       }
-      if (objeto === '3') objeto = sujeto === '3D' ? '3I' : '3D';
+      if (objeto === '3') {                              // "le", "lo", "la": la última persona que no es el sujeto
+        const g = { lo: 'm', los: 'm', la: 'f', las: 'f' }[clitico] ?? null;
+        const ref = this.#referente(memoria, g, sujeto) || this.#referente(memoria, null, sujeto);
+        objeto = ref ? memoria.lugar.get(ref) : (sujeto === '3D' || clitico === 'lo' || clitico === 'los' ? '3I' : '3D');
+      }
       if (sujeto === '3') sujeto = objeto === '3D' ? '3I' : '3D';
       if (sujeto === objeto) continue;
       // "a ti te digo": el pronombre objeto ya lo dice el verbo
@@ -407,7 +497,7 @@ export class CerebroLocal {
     return items.filter((x) => !quitar.has(x));
   }
 
-  #analizarOracion(o) {
+  #analizarOracion(o, memoria) {
     const palabras = o.texto.match(PALABRA) ?? [];
     const bajas = palabras.map((p) => p.normalize('NFC').toLowerCase());
     const normas = palabras.map((p) => quitarTildes(p).toUpperCase());
@@ -508,7 +598,7 @@ export class CerebroLocal {
       i += 1;
     }
 
-    const conDireccion = this.#direccionar(items, bajas, normas);   // v67: verbos direccionales
+    const conDireccion = this.#direccionar(items, bajas, normas, palabras, memoria);   // v67-v68: verbos direccionales y personas en el espacio
     items.length = 0;
     items.push(...conDireccion);
 
@@ -616,7 +706,8 @@ export class CerebroLocal {
 
   /** Frase en español -> oraciones con glosas en orden LSC y expresión por glosa. */
   analizar(texto) {
-    const oraciones = this.#oraciones(quitarSignosRaros(texto)).map((o) => this.#analizarOracion(o));
+    const memoria = { lugar: new Map(), recientes: [] };   // v68: las personas quedan en su lugar de una oración a otra
+    const oraciones = this.#oraciones(quitarSignosRaros(texto)).map((o) => this.#analizarOracion(o, memoria));
     return {
       oraciones,
       glosas: oraciones.flatMap((o) => o.glosas),
