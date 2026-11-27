@@ -48,7 +48,7 @@ export const CONFIG_SECUENCIA = {
   clipEspera: 'ESPERA',
   // Se agrega como ?v= a cada clip. Súbelo al regenerar las animaciones: si no,
   // el navegador puede usar un clip viejo de su caché (hecho para otro esqueleto).
-  version: 63,
+  version: 66,
 };
 
 export class SecuenciadorSenas extends EventTarget {
