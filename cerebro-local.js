@@ -182,6 +182,18 @@ export class CerebroLocal {
     this.sustantivosVerbales = conjunto(g.sustantivos_verbales);
     this.cliticos = g.cliticos ?? []; // v57: los más largos primero
     this.rostroPregunta = new Map(Object.entries(g.rostro_pregunta ?? {})); // v58
+    const d = g.direccionales ?? {};                     // v67: verbos direccionales
+    this.direccionales = new Map(Object.entries(d.verbos ?? {}));
+    this.direcciones = new Set(d.direcciones ?? []);
+    this.lugarPronombre = new Map(Object.entries(d.lugar_pronombre ?? {}));
+    this.lugarClitico = new Map(Object.entries(d.lugar_clitico ?? {}));
+    this.cliticosSueltos = new Set(d.cliticos_sueltos ?? []);
+    this.lugarTrasA = new Map(Object.entries(d.lugar_tras_a ?? {}));
+    this.antesDelNombre = new Set(d.antes_del_nombre ?? []);
+    this.masculinosEnA = new Set(d.masculinos_en_a ?? []);
+    this.femeninos = new Set(d.femeninos ?? []);
+    this.irregularesPersona = new Map(Object.entries(d.irregulares_persona ?? {}));
+    this.pegadosFijos = new Map(Object.entries(d.pegados_fijos ?? {}));
     this.senas = new Map(Object.entries(datos.diccionario.senas));
     this.letras = new Map(Object.entries(datos.diccionario.letras));
   }
@@ -248,6 +260,151 @@ export class CerebroLocal {
   esVerbo(glosa) {
     if (this.noVerbos.has(glosa)) return false;
     return this.verbos.has(glosa) || /(AR|ER|IR)$/.test(glosa);
+  }
+
+
+  /* ----- v67: verbos direccionales (procesador_lsc._direccionar) ------------ */
+
+  /** Lado de una tercera persona por el género de la palabra: ella a la derecha, él a la izquierda. */
+  #lugarSustantivo(n) {
+    if (this.femeninos.has(n) || ((n.endsWith('A') || n.endsWith('AS')) && !this.masculinosEnA.has(n))) return '3D';
+    return '3I';
+  }
+
+  /** Persona de una forma verbal (con tildes, sin pronombres pegados): '1', '2', '3' o null. */
+  #personaForma(b) {
+    if (this.irregularesPersona.has(b)) return this.irregularesPersona.get(b);
+    const llana = quitarTildes(b);
+    const termina = (s, lista) => lista.some((t) => s.endsWith(t));
+    if (termina(llana, ['ar', 'er', 'ir', 'ando', 'iendo'])) return null;
+    if (termina(llana, ['amos', 'emos', 'imos'])) return '1';
+    if (termina(llana, ['aste', 'iste', 'as', 'es'])) return '2';
+    if (termina(b, ['é', 'í'])) return '1';
+    if (b.endsWith('ó')) return '3';
+    if (termina(llana, ['aron', 'ieron', 'an', 'en'])) return '3';
+    if (llana.endsWith('o')) return '1';
+    if (termina(llana, ['a', 'e'])) return '3';
+    return null;
+  }
+
+  /** Pronombres pegados a la forma del verbo ("AYUDAME" -> "ME"), o null. */
+  #cliticoPegado(glosa, n) {
+    if (this.pegadosFijos.has(n) && this.sinonimos.get(n) === glosa) return this.pegadosFijos.get(n);
+    if (this.sinonimos.get(n) === glosa || this.verboBase(n) === glosa) return null;
+    for (const c of this.cliticos) {
+      if (n.endsWith(c) && n.length - c.length >= 2) {
+        const base = n.slice(0, -c.length);
+        if ((this.sinonimos.get(base) || (this.verbos.has(base) ? base : null) || this.verboBase(base)) === glosa) return c;
+      }
+    }
+    return null;
+  }
+
+  /** Pone a los verbos direccionales el recorrido (x.direccion) y quita los pronombres objeto que ya dice el verbo. */
+  #direccionar(items, bajas, normas) {
+    const quitar = new Set();
+    const conPos = (y) => y.pos !== undefined && y.pos !== null;
+    for (const x of items) {
+      const verbo = x.glosa;
+      const p = x.pos;
+      if (!this.direccionales.has(verbo) || !conPos(x)) continue;
+      const b = bajas[p];
+      const n = normas[p];
+      let objeto = null;
+      let sujeto = null;
+      const pegado = this.#cliticoPegado(verbo, n);
+      const forma = pegado ? b.slice(0, b.length - pegado.length) : b;
+      if (pegado) {
+        for (const c0 of ['NOS', 'LES', 'LOS', 'LAS', 'ME', 'TE', 'SE', 'LE', 'LO', 'LA']) {
+          if (pegado.startsWith(c0)) {
+            let c = c0.toLowerCase();
+            if (c === 'se') c = pegado.length > 2 ? 'le' : null;
+            if (['lo', 'la', 'los', 'las'].includes(c) && !this.direccionales.get(verbo)) c = null;
+            objeto = c ? (this.lugarClitico.get(c) ?? null) : null;
+            break;
+          }
+        }
+      }
+      if (objeto === null) {
+        const cadena = [];
+        let k = p - 1;
+        if (this.#personaForma(forma) === null) {         // "me puedes ayudar", "te voy a pagar"
+          let saltos = 0;
+          while (k >= 0 && saltos < 3 && (bajas[k] === 'a' || IR_FORMAS.has(normas[k])
+              || items.some((y) => y.pos === k && this.verbos.has(y.glosa)))) {
+            k -= 1;
+            saltos += 1;
+          }
+        }
+        while (k >= 0 && cadena.length < 2 && this.cliticosSueltos.has(bajas[k])) {
+          cadena.unshift(bajas[k]);
+          k -= 1;
+        }
+        if (cadena.length) {
+          let c = cadena[0];
+          if (c === 'se') c = cadena.length > 1 ? 'le' : null;
+          if (['lo', 'la', 'los', 'las'].includes(c) && (cadena.length > 1 || !this.direccionales.get(verbo))) c = null;
+          objeto = c ? (this.lugarClitico.get(c) ?? null) : null;
+        }
+      }
+      // "a mí", "a ti", "a ella", "a mi mamá" después del verbo
+      for (let k = p + 1; k < Math.min(p + 6, bajas.length - 1); k += 1) {
+        if (bajas[k] !== 'a' && bajas[k] !== 'al') continue;
+        let j = k + 1;
+        let lugar = null;
+        if (bajas[k] === 'a' && this.lugarTrasA.has(bajas[j]) && !(
+          bajas[j] === 'mi' && j + 1 < bajas.length && !this.omitir.has(normas[j + 1]))) {
+          lugar = this.lugarTrasA.get(bajas[j]);
+          for (const y of items) if (y.pos === j) quitar.add(y);
+        } else if (objeto === null || objeto === '3') {
+          while (j < bajas.length - 1 && this.antesDelNombre.has(bajas[j])) j += 1;
+          if (!this.omitir.has(normas[j]) && !this.esVerbo(this.sinonimos.get(normas[j]) ?? normas[j])) {
+            lugar = bajas[k] === 'al' ? '3I' : this.#lugarSustantivo(normas[j]);
+          }
+        }
+        if (lugar && (objeto === null || (objeto === '3' && lugar[0] === '3'))) objeto = lugar;
+        break;
+      }
+      if (objeto === null) continue;
+      // sujeto: pronombre dicho antes del verbo, o la persona de la forma verbal
+      const previos = items.filter((y) => conPos(y) && y.pos < p);
+      for (const y of [...previos].reverse()) {
+        if (this.lugarPronombre.has(y.glosa) && !(y.pos > 0 && bajas[y.pos - 1] === 'a')) {
+          sujeto = this.lugarPronombre.get(y.glosa);
+          break;
+        }
+      }
+      if (sujeto === null) {
+        let persona = this.#personaForma(forma);
+        if (pegado && persona !== null) persona = '2'; // "ayúdame", "dime": imperativo
+        if (persona === null) {                          // "quiero ayudarte": la persona del verbo anterior
+          for (const y of [...previos].reverse()) {
+            if (this.verbos.has(y.glosa)) {
+              persona = this.#personaForma(bajas[y.pos]);
+              if (persona) break;
+            }
+          }
+        }
+        if (persona === '3') {
+          const antes = previos.filter((y) => !this.verbos.has(y.glosa) && !['MIO', 'TU', 'SUYO', 'NO', 'NUESTRO'].includes(y.glosa));
+          if (antes.length) persona = this.#lugarSustantivo(normas[antes.at(-1).pos]);
+          else persona = quitarTildes(forma).endsWith('n') ? '3' : '2';   // "ayuda a tu hermano": una orden
+        }
+        sujeto = persona || (objeto === '1' ? '2' : '1');
+      }
+      if (objeto === '3') objeto = sujeto === '3D' ? '3I' : '3D';
+      if (sujeto === '3') sujeto = objeto === '3D' ? '3I' : '3D';
+      if (sujeto === objeto) continue;
+      // "a ti te digo": el pronombre objeto ya lo dice el verbo
+      for (const y of items) {
+        const j = y.pos;
+        if (conPos(y) && j > 0 && bajas[j - 1] === 'a' && this.lugarTrasA.has(bajas[j])
+            && this.lugarTrasA.get(bajas[j]) === objeto && !(bajas[j] === 'mi' && j + 1 < bajas.length)) quitar.add(y);
+      }
+      const direccion = `${sujeto}_${objeto}`;
+      if (this.direcciones.has(direccion)) x.direccion = direccion;
+    }
+    return items.filter((x) => !quitar.has(x));
   }
 
   #analizarOracion(o) {
@@ -344,12 +501,16 @@ export class CerebroLocal {
         tuPendiente = true;                              // "vives", "comiste", "quieres" (no "las preguntas")
       }
       if (glosa) {
-        items.push({ glosa, origen: palabras[i], relativo });
+        items.push({ glosa, origen: palabras[i], relativo, pos: i });
         if (tuPendiente && verboTu === null) verboTu = items.at(-1);
         tuPendiente = false;
       } else omitidas.push(palabras[i]);
       i += 1;
     }
+
+    const conDireccion = this.#direccionar(items, bajas, normas);   // v67: verbos direccionales
+    items.length = 0;
+    items.push(...conDireccion);
 
     // --- orden de la LSC
     const cortesia = items.filter((x) => this.cortesia.has(x.glosa));
@@ -414,7 +575,7 @@ export class CerebroLocal {
     const ordenados = [...cortesia, ...tiempo, ...conYa, ...preguntas];
 
     // --- tipo de oración y expresión facial
-    const glosas = ordenados.map((x) => x.glosa);
+    const glosas = ordenados.map((x) => x.glosa + (x.direccion ? `_${x.direccion}` : ''));
     let tipo;
     let expresion;
     if (preguntas.length || glosas.some((g) => this.preguntasFijas.has(g))) {

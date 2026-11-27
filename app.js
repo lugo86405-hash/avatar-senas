@@ -20,7 +20,7 @@ import { SecuenciadorSenas } from './secuenciador-senas.js?v=66';
 import { setEstilo } from './estilo-anime.js?v=51';
 import { TransicionNatural } from './transicion-natural.js?v=51';
 import { InterpreteVivo } from './interprete-vivo.js?v=55';
-import { CerebroLocal } from './cerebro-local.js?v=63';
+import { CerebroLocal } from './cerebro-local.js?v=67';
 import { Validacion, ESTADOS, FALLAS } from './validacion.js?v=65';
 
 /* ==========================================================================
@@ -628,16 +628,17 @@ function mostrarGlosaLsc(datos) {
       if (o.con_sena && !o.con_sena[i]) {
         g.className = 'deletreo';
         g.title = 'Sin seña: se deletrea';
-      } else if (validacion?.tiene(glosa)) {
+      } else if (validacion?.tiene(glosaBase(glosa))) {
         // v65: cada seña muestra si ya está validada (✓), revisada con video (◐), etc.
-        const estado = validacion.estado(glosa);
+        const estado = validacion.estado(glosaBase(glosa));
         g.className = `e-${estado}`;
         g.title = ESTADOS[estado].nombre;
         const icono = iconoEstado(estado);
         icono.classList.add('marca-estado');
         g.append(icono);
       }
-      g.append(glosa);
+      g.append(glosaLegible(glosa));
+      if (glosaLegible(glosa) !== glosa) g.title = `${g.title ? `${g.title} · ` : ''}Verbo direccional: ${glosa}`;
       linea.append(g);
     });
     if (o.tipo === 'pregunta_abierta' || o.tipo === 'pregunta_si_no') linea.append('(?)');
@@ -1231,8 +1232,25 @@ function actualizarTarjeta() {
   ui.tarjetaValidacion.hidden = false;
 }
 
+/* v67: verbos direccionales. AYUDAR_2_1 va de 2 (tú) a 1 (yo); 3D y 3I son la tercera
+   persona a la derecha (donde señala ELLA) y a la izquierda (donde señala ÉL). */
+const DIRECCIONAL = /^(.+)_(1|2|3D|3I)_(1|2|3D|3I)$/;
+const LUGAR_LEGIBLE = { 1: 'yo', 2: 'tú', '3D': 'der.', '3I': 'izq.' };
+
+/** La seña de base de un verbo direccional (AYUDAR_2_1 -> AYUDAR); las demás, igual. */
+function glosaBase(glosa) {
+  return DIRECCIONAL.exec(glosa ?? '')?.[1] ?? glosa;
+}
+
+/** AYUDAR_2_1 -> "AYUDAR (tú→yo)", para mostrar. */
+function glosaLegible(glosa) {
+  const m = DIRECCIONAL.exec(glosa ?? '');
+  return m ? `${m[1]} (${LUGAR_LEGIBLE[m[2]]}→${LUGAR_LEGIBLE[m[3]]})` : glosa;
+}
+
 /** Chip de la seña actual: validada, con video, etc. Las letras del deletreo no llevan. */
 function mostrarEstadoSena(glosa) {
+  glosa = glosaBase(glosa);
   if (!glosa || !validacion?.tiene(glosa)) {
     ui.signEstado.hidden = true;
     return;
@@ -1658,7 +1676,7 @@ function setupDevUi(viewer, sequencer) {
   sequencer.addEventListener('sena', ({ detail }) => {
     const { glosa, indice, total, expresion, palabraOrigen } = detail;
     const contexto = palabraOrigen ? `Deletreo de ${palabraOrigen} · ` : '';
-    showSignStatus(glosa, `${contexto}Seña ${indice + 1} de ${total} · ${expresion}`);
+    showSignStatus(glosaLegible(glosa), `${contexto}Seña ${indice + 1} de ${total} · ${expresion}`);
     mostrarEstadoSena(glosa);
   });
   sequencer.addEventListener('fin', ({ detail }) => {
@@ -1691,7 +1709,7 @@ function setupDevUi(viewer, sequencer) {
   });
 }
 
-console.info('[Puente LSC] app.js versión 66 (1255 señas, videos UDES) cargada');
+console.info('[Puente LSC] app.js versión 67 (verbos direccionales) cargada');
 
 async function main() {
   let viewer;
