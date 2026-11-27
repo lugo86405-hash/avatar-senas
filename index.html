@@ -3,14 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Avatar Señas</title>
+  <title>Puente LSC · Español a Lengua de Señas Colombiana</title>
   <!-- v56: app instalable (PWA) -->
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#20262e">
-  <meta name="description" content="Avatar 3D que traduce español a Lengua de Señas Colombiana (LSC)">
+  <meta name="theme-color" content="#FBF7F0" id="meta-tema">
+  <meta name="description" content="Puente LSC: avatar 3D que traduce español a Lengua de Señas Colombiana (LSC)">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="icon" href="iconos/icono-192.png" type="image/png">
   <link rel="apple-touch-icon" href="iconos/icono-192.png">
-  <link rel="stylesheet" href="style.css?v=55c">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" crossorigin href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="style.css?v=65">
+  <script>
+    // v65: el tema va antes de pintar la página, para que no parpadee.
+    // Alto contraste es el tema oscuro; sin elección guardada, sigue al sistema.
+    (function () {
+      let tema = null;
+      try { tema = localStorage.getItem('puente-tema'); } catch (e) { /* sin almacenamiento */ }
+      if (tema !== 'claro' && tema !== 'oscuro') tema = matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+      document.documentElement.dataset.tema = tema;
+    })();
+  </script>
 
   <!--
     Import map: le dice al navegador de dónde sacar 'three' y sus addons,
@@ -65,19 +79,34 @@
        y controles); a la derecha el avatar, sin nada encima. -->
   <aside id="lateral" class="lateral" aria-label="Información y controles">
   <header class="brand">
-    <h1>Avatar Señas</h1>
-    <p>Módulo 5 · Español a señas</p>
+    <div class="marca">
+      <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+        <rect x="2" y="2" width="44" height="44" rx="12" class="logo-fondo"/>
+        <path d="M9 34 C14 16 34 16 39 34" class="logo-trazo" stroke-width="3.6"/>
+        <path d="M9 34 H39 M15 34 V27 M24 34 V22 M33 34 V27" class="logo-trazo" stroke-width="2.6"/>
+      </svg>
+      <div>
+        <h1>Puente LSC</h1>
+        <p>Español y LSC, de un lado al otro</p>
+      </div>
+    </div>
+    <button type="button" class="boton-tema" aria-pressed="false" title="Cambiar entre arena clara y alto contraste">
+      <span aria-hidden="true">◐</span> <span class="boton-tema-texto">Alto contraste</span>
+    </button>
   </header>
 
   <!-- Indicador de la seña que el avatar está ejecutando en este momento. -->
   <section id="sign-indicator" class="sign-indicator" role="status" aria-live="polite" hidden>
-    <p class="sign-label">Seña actual</p>
+    <div class="sign-cabecera">
+      <p class="sign-label">Seña actual</p>
+      <span id="sign-estado" class="chip" hidden></span>
+    </div>
     <p id="sign-name" class="sign-name">Pose neutral</p>
     <p id="sign-detail" class="sign-detail"></p>
     <div class="sign-progress" aria-hidden="true"><div id="sign-progress-bar"></div></div>
   </section>
 
-  <!-- Panel: frase en español, tipo de animación, glosa y expresión. -->
+  <!-- Panel: frase en español, modos en vivo y noticiero, y más opciones plegadas. -->
   <section id="dev-panel" class="panel" aria-label="Controles del avatar" hidden>
     <!-- Frase en español -> cerebro lingüístico (Python) -> backend Java -> avatar. -->
     <div class="panel-row">
@@ -89,61 +118,141 @@
     </div>
     <!-- v51: intérprete en vivo (escucha continua) y vista de recuadro de noticiero. -->
     <div class="panel-row">
-      <button type="button" id="live-button" aria-pressed="false" title="Escuchar sin parar e ir señando frase por frase" hidden>🔴 En vivo</button>
+      <button type="button" id="live-button" class="secondary" aria-pressed="false" title="Escuchar sin parar e ir señando frase por frase" hidden>🔴 En vivo</button>
       <button type="button" id="news-button" class="secondary" aria-pressed="false" title="Video a pantalla completa y el avatar en un recuadro" hidden>📺 Noticiero</button>
     </div>
-    <!-- v52: qué oye el modo en vivo (Google en el navegador, o Whisper en este computador). -->
-    <div class="panel-row">
-      <select class="oido-select" aria-label="Qué oye el intérprete" hidden>
-        <option value="navegador">Oído: Google (micrófono)</option>
-        <option value="whisper-microfono">Oído: Whisper · micrófono</option>
-        <option value="whisper-video">Oído: Whisper · el video</option>
-        <option value="whisper-pestana">Oído: Whisper · una pestaña</option>
-        <option value="whisper-sistema">Oído: Whisper · audio del computador</option>
-      </select>
-    </div>
     <p id="oido-estado" class="oido-estado" hidden></p>
-    <!-- v55: el avatar como capa de una transmisión (OBS), con fondo transparente. -->
-    <details id="obs" class="obs">
-      <summary>📡 Usar en OBS (transmisión)</summary>
-      <div class="field">
-        <label for="obs-fuente">Qué oye</label>
-        <select id="obs-fuente"></select>
-      </div>
-      <label class="obs-check"><input id="obs-subtitulos" type="checkbox"> Mostrar subtítulos</label>
-      <input id="obs-url" type="text" readonly aria-label="Enlace para OBS">
-      <div class="panel-row">
-        <button type="button" id="obs-copiar">Copiar enlace</button>
-        <button type="button" id="obs-abrir" class="secondary">Vista previa</button>
-      </div>
-      <p class="obs-ayuda">En OBS: Fuentes → + → <strong>Navegador</strong>, pega el enlace,
-        ancho 540 y alto 600. El avatar sale sin fondo, listo para ponerlo en una esquina.
-        Necesita <code>iniciar.sh</code> abierto.</p>
-    </details>
     <!-- Resultado de la gramática LSC: glosas en orden de señas, oración por oración. -->
     <p id="glosa-lsc" class="glosa-lsc" aria-live="polite" hidden></p>
-    <div class="field">
-      <label for="avatar-select">Avatar</label>
-      <select id="avatar-select"></select>
+    <!-- v65: lo que se usa poco va plegado. -->
+    <details class="mas-opciones">
+      <summary>Más opciones: avatar, oído, OBS</summary>
+      <div class="field">
+        <label for="avatar-select">Avatar</label>
+        <select id="avatar-select"></select>
+      </div>
+      <div class="field">
+        <label for="style-select">Tipo de animación</label>
+        <select id="style-select">
+          <option value="realista">Realista</option>
+          <option value="anime">Anime</option>
+        </select>
+      </div>
+      <!-- v52: qué oye el modo en vivo (Google en el navegador, o Whisper en este computador). -->
+      <div class="panel-row">
+        <select class="oido-select" aria-label="Qué oye el intérprete" hidden>
+          <option value="navegador">Oído: Google (micrófono)</option>
+          <option value="whisper-microfono">Oído: Whisper · micrófono</option>
+          <option value="whisper-video">Oído: Whisper · el video</option>
+          <option value="whisper-pestana">Oído: Whisper · una pestaña</option>
+          <option value="whisper-sistema">Oído: Whisper · audio del computador</option>
+        </select>
+      </div>
+      <!-- v55: el avatar como capa de una transmisión (OBS), con fondo transparente. -->
+      <details id="obs" class="obs">
+        <summary>📡 Usar en OBS (transmisión)</summary>
+        <div class="field">
+          <label for="obs-fuente">Qué oye</label>
+          <select id="obs-fuente"></select>
+        </div>
+        <label class="obs-check"><input id="obs-subtitulos" type="checkbox"> Mostrar subtítulos</label>
+        <input id="obs-url" type="text" readonly aria-label="Enlace para OBS">
+        <div class="panel-row">
+          <button type="button" id="obs-copiar">Copiar enlace</button>
+          <button type="button" id="obs-abrir" class="secondary">Vista previa</button>
+        </div>
+        <p class="obs-ayuda">En OBS: Fuentes → + → <strong>Navegador</strong>, pega el enlace,
+          ancho 540 y alto 600. El avatar sale sin fondo, listo para ponerlo en una esquina.
+          Necesita <code>iniciar.sh</code> abierto.</p>
+      </details>
+    </details>
+  </section>
+
+  <!-- v65: avance de la validación y entrada al modo de validar. -->
+  <section id="tarjeta-validacion" class="tarjeta-validacion" aria-labelledby="tv-titulo" hidden>
+    <div class="tv-cabecera">
+      <h2 id="tv-titulo">Validación</h2>
+      <span id="tv-cuenta" class="suave"></span>
     </div>
-    <div class="field">
-      <label for="style-select">Tipo de animación</label>
-      <select id="style-select">
-        <option value="realista">Realista</option>
-        <option value="anime">Anime</option>
-      </select>
-    </div>
-    <!-- Al elegir una glosa, el avatar la reproduce con la expresión seleccionada. -->
-    <div class="field">
-      <label for="gloss-select">Glosa</label>
-      <select id="gloss-select"></select>
-    </div>
-    <div class="field">
-      <label for="expression-select">Expresión</label>
-      <select id="expression-select"></select>
-    </div>
+    <div class="barra-estados" aria-hidden="true"><i class="e-validada"></i><i class="e-video"></i><i class="e-corregir"></i></div>
+    <p id="tv-leyenda" class="tv-leyenda"></p>
+    <a href="#validar" class="boton boton-primario">Validar señas →</a>
   </section>
   </aside>
+
+  <!-- v65 · Modo validar: lista por importancia, el avatar repite la seña y la ficha para decidir. -->
+  <section id="validar" class="validar" aria-label="Validar señas" hidden>
+    <header class="val-barra">
+      <a href="#" class="val-volver">← Volver</a>
+      <h2>Validar señas</h2>
+      <button type="button" class="boton val-lista-boton" aria-expanded="false" aria-controls="val-lista">☰ Lista</button>
+      <div class="val-progreso">
+        <div class="val-progreso-texto"><span>Progreso</span><span id="val-cuenta"></span></div>
+        <div class="barra-estados" aria-hidden="true"><i class="e-validada"></i><i class="e-video"></i><i class="e-corregir"></i></div>
+      </div>
+      <label class="val-nombre">Valida:
+        <input id="val-nombre" type="text" placeholder="Tu nombre y rol" autocomplete="name" maxlength="80">
+      </label>
+    </header>
+
+    <aside id="val-lista" class="val-lista" aria-label="Señas por importancia">
+      <div>
+        <h3>Por importancia</h3>
+        <p class="suave">Primero las que más salen en noticias y conversación</p>
+      </div>
+      <div class="segmentos filtros" role="group" aria-label="Qué señas mostrar">
+        <button type="button" data-filtro="pendientes" aria-pressed="true">Pendientes</button>
+        <button type="button" data-filtro="corregir" aria-pressed="false">Corregir</button>
+        <button type="button" data-filtro="todas" aria-pressed="false">Todas</button>
+      </div>
+      <label for="val-buscar" class="solo-lector">Buscar seña o palabra</label>
+      <input id="val-buscar" type="search" placeholder="Buscar seña o palabra" autocomplete="off">
+      <ol id="val-items" class="val-items"></ol>
+      <label class="val-nombre-movil">Valida
+        <input id="val-nombre-movil" type="text" placeholder="Tu nombre y rol" autocomplete="name" maxlength="80">
+      </label>
+      <div class="val-archivo">
+        <button type="button" id="val-exportar" class="boton">Exportar</button>
+        <label class="boton">Importar<input id="val-importar" type="file" accept="application/json,.json"></label>
+      </div>
+    </aside>
+
+    <div class="val-herramientas" role="toolbar" aria-label="Cómo ver la seña">
+      <span class="chip suave val-bucle">Se repite sola hasta que decidas</span>
+      <button type="button" id="val-repetir" class="boton" aria-label="Repetir la seña">↻<span class="solo-ancho"> Repetir</span></button>
+      <div class="segmentos" role="group" aria-label="Velocidad">
+        <button type="button" data-velocidad="0.5" aria-pressed="false">0,5×</button>
+        <button type="button" data-velocidad="1" aria-pressed="true">1×</button>
+      </div>
+      <div class="segmentos" role="group" aria-label="Vista">
+        <button type="button" data-vista="frente" aria-pressed="true">Frente</button>
+        <button type="button" data-vista="lado" aria-pressed="false">Lado</button>
+        <button type="button" data-vista="cara" aria-pressed="false">Cara</button>
+      </div>
+    </div>
+
+    <section class="val-ficha" aria-labelledby="val-glosa">
+      <div class="val-ficha-cabecera">
+        <span id="val-puesto" class="suave"></span>
+        <span id="val-estado" class="chip"></span>
+      </div>
+      <h3 id="val-glosa" class="val-glosa">—</h3>
+      <p id="val-datos" class="val-datos suave"></p>
+      <fieldset class="val-fallas">
+        <legend>Si algo está mal, marca qué</legend>
+        <div id="val-fallas"></div>
+      </fieldset>
+      <label for="val-nota" class="suave">Nota (opcional)</label>
+      <textarea id="val-nota" rows="2" placeholder="Por ejemplo: las manos deben alternarse más rápido"></textarea>
+      <p id="val-aviso" class="val-aviso" role="status" aria-live="polite"></p>
+      <div class="val-acciones">
+        <button type="button" id="val-validar" class="boton boton-ok">✓ Está bien · validar</button>
+        <button type="button" id="val-corregir" class="boton boton-mal">! Necesita corrección</button>
+        <button type="button" id="val-saltar" class="boton">Saltar →</button>
+        <span class="val-teclas suave">Teclas: V validar · C corregir · S saltar · R repetir</span>
+      </div>
+    </section>
+  </section>
 
   <!-- Estado de carga y errores. Se oculta cuando el modelo ya está listo. -->
   <section id="loader" class="loader" role="status" aria-live="polite">
@@ -163,7 +272,7 @@
       document.getElementById('loader').classList.add('is-error');
     }
   </script>
-  <script type="module" src="app.js?v=64" onerror="showStartupError()"></script>
+  <script type="module" src="app.js?v=65" onerror="showStartupError()"></script>
   <script>
     // v56: app instalable (PWA). El service worker guarda la página, Three.js, el
     // avatar y las señas ya usadas, para abrirla sin internet (solo en https o

@@ -1,18 +1,19 @@
 /* ==========================================================================
-   Avatar Señas · Estilos del visualizador
+   Puente LSC · Estilos del visualizador (antes "Avatar Señas")
    El lienzo 3D ocupa toda la pantalla y la interfaz flota encima de él.
    ========================================================================== */
 
 :root {
-  --bg: #20262e;
-  --surface: rgba(15, 19, 24, 0.82);
-  --text: #f2f4f7;
-  --muted: #aab4c0;
-  --accent: #4fb3a5;
-  --accent-text: #08201d;
-  --danger: #f28b82;
-  --border: rgba(255, 255, 255, 0.14);
-  --radius: 10px;
+  /* v65 · Puente LSC: los nombres de antes apuntan a la paleta del tema. */
+  --bg: var(--fondo);
+  --surface: var(--superficie);
+  --text: var(--texto);
+  --muted: var(--suave);
+  --accent: var(--primario);
+  --accent-text: var(--sobre-primario);
+  --danger: var(--mal);
+  --border: var(--borde);
+  --radius: 12px;
 }
 
 * {
@@ -26,7 +27,7 @@ body {
   overflow: hidden; /* Evita barras de scroll sobre el lienzo. */
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* --------------------------------------------------------------------------
@@ -103,7 +104,7 @@ body {
   height: 6px;
   overflow: hidden;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--pista);
 }
 
 #progress-bar {
@@ -171,7 +172,7 @@ body {
   margin-top: 8px;
   overflow: hidden;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--pista);
 }
 
 #sign-progress-bar {
@@ -233,7 +234,7 @@ body {
 .panel select {
   min-width: 0;
   max-width: 100%;
-  background: #12171d;
+  background: var(--campo);
   color: var(--text);
 }
 
@@ -255,7 +256,7 @@ body {
 .panel input {
   flex: 1;
   min-width: 0;
-  background: #12171d;
+  background: var(--campo);
   color: var(--text);
 }
 
@@ -350,16 +351,16 @@ body[data-estilo="anime"] .brand p {
   margin: 0;
   padding: 6px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--superficie);
   font: 600 13px/1.5 ui-monospace, "DejaVu Sans Mono", monospace;
   letter-spacing: 0.02em;
 }
 .glosa-lsc .oracion { display: block; }
-.glosa-lsc .tipo { font: 400 11px/1.5 system-ui, sans-serif; opacity: 0.7; margin-left: 8px; }
+.glosa-lsc .tipo { font: 400 11px/1.5 "Atkinson Hyperlegible", system-ui, sans-serif; opacity: 0.7; margin-left: 8px; }
 .glosa-lsc .deletreo { opacity: 0.65; font-weight: 400; }
 .panel .glosa-lsc[hidden] { display: none; }
 
-.glosa-lsc .aviso { color: #ffb84d; font: 500 12px/1.5 system-ui, sans-serif; }
+.glosa-lsc .aviso { color: var(--aviso-texto); font: 500 12px/1.5 "Atkinson Hyperlegible", system-ui, sans-serif; }
 
 /* --------------------------------------------------------------------------
    v51 · Modo en vivo y modo noticiero
@@ -496,7 +497,7 @@ body[data-estilo="anime"] .brand p {
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #12171d;
+  background: var(--campo);
   color: var(--text);
   font: inherit;
   font-size: 0.85rem;
@@ -512,7 +513,7 @@ body[data-estilo="anime"] .brand p {
   border-radius: 8px;
   background: var(--accent);
   color: var(--accent-text);
-  font: 600 0.85rem system-ui, sans-serif;
+  font: 600 0.85rem "Atkinson Hyperlegible", system-ui, sans-serif;
   cursor: pointer;
 }
 
@@ -600,7 +601,7 @@ body.modo-noticiero .vivo-metricas {
   opacity: 0.8;
 }
 .oido-estado.mal {
-  color: #ff8a80;
+  color: var(--mal-texto);
   opacity: 1;
 }
 .noticiero-barra .oido-select {
@@ -608,7 +609,7 @@ body.modo-noticiero .vivo-metricas {
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #12171d;
+  background: var(--campo);
   color: var(--text);
   font: inherit;
   font-size: 0.85rem;
@@ -635,7 +636,7 @@ body.modo-noticiero .vivo-metricas {
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   overflow-y: auto; /* Si no cabe todo, baja solo esta columna. */
   border-right: 1px solid var(--border);
-  background: #171c22;
+  background: var(--fondo);
 }
 
 #viewer {
@@ -846,4 +847,745 @@ body.modo-overlay:not(.overlay-metricas) .vivo-metricas {
 .obs #obs-url {
   width: 100%;
   flex: 0 0 auto;
+}
+
+/* ==========================================================================
+   v65 · Puente LSC: dos temas, marca, estados de validación y modo validar
+   ========================================================================== */
+
+/* Arena clara: el tema de día. Contraste AA o mejor en todo el texto. */
+:root,
+:root[data-tema="claro"] {
+  color-scheme: light;
+  --fondo: #FBF7F0;
+  --superficie: #FFFFFF;
+  --campo: #FFFFFF;
+  --pista: #E9E1D3;
+  --borde: #E2D8C8;
+  --texto: #1D2433;
+  --suave: #4F5868;
+  --primario: #2457C5;
+  --sobre-primario: #FFFFFF;
+  --acento: #B4441A;
+  --sobre-acento: #FFFFFF;
+  --foco: #2457C5;
+  --ok: #2457C5;      --ok-fondo: #E6EEFB;    --ok-texto: #1D3F8F;
+  --aviso: #B07A00;   --aviso-fondo: #FFF1D6; --aviso-texto: #6E4C00;
+  --mal: #B4441A;     --mal-fondo: #FBE6DD;   --mal-texto: #8A3112;
+  --pendiente: #8A93A3;
+  --sombra: 0 1px 2px rgba(29, 36, 51, 0.06), 0 4px 16px rgba(29, 36, 51, 0.06);
+}
+
+/* Alto contraste: el tema oscuro. Negro puro, texto blanco y amarillo de señal. */
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+  --fondo: #000000;
+  --superficie: #121212;
+  --campo: #000000;
+  --pista: #3A3A3A;
+  --borde: #3A3A3A;
+  --texto: #FFFFFF;
+  --suave: #D0D0D0;
+  --primario: #FFD60A;
+  --sobre-primario: #000000;
+  --acento: #00D1FF;
+  --sobre-acento: #000000;
+  --foco: #00D1FF;
+  --ok: #00D1FF;      --ok-fondo: #002A33;    --ok-texto: #7FE8FF;
+  --aviso: #FFD60A;   --aviso-fondo: #332B00; --aviso-texto: #FFE766;
+  --mal: #FF9F1C;     --mal-fondo: #331F00;   --mal-texto: #FFC470;
+  --pendiente: #9A9A9A;
+  --sombra: none;
+}
+
+h1, h2, h3, .sign-name, .val-glosa {
+  font-family: Lexend, "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+a { color: var(--primario); }
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.suave { color: var(--suave); }
+
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Marca ---------- */
+.lateral .brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.logo {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+}
+
+.logo-fondo { fill: var(--acento); }
+
+.logo-trazo {
+  fill: none;
+  stroke: var(--sobre-acento);
+  stroke-linecap: round;
+}
+
+.lateral .brand h1 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.lateral .brand p {
+  color: var(--suave);
+  font-size: 0.85rem;
+}
+
+.boton-tema {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto);
+  font: 600 0.85rem "Atkinson Hyperlegible", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+/* ---------- Tarjetas de la columna ---------- */
+.lateral .sign-indicator,
+.tarjeta-validacion {
+  padding: 14px 16px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radius);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.sign-cabecera,
+.tv-cabecera,
+.val-ficha-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lateral .sign-name {
+  font-size: 1.6rem;
+}
+
+/* ---------- Estados de validación ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--suave);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chip[hidden] { display: none; }
+
+.chip.e-validada { border-color: var(--ok); background: var(--ok-fondo); color: var(--ok-texto); }
+.chip.e-video { border-color: var(--aviso); background: var(--aviso-fondo); color: var(--aviso-texto); }
+.chip.e-corregir { border-color: var(--mal); background: var(--mal-fondo); color: var(--mal-texto); }
+.chip.e-pendiente { border-style: dashed; }
+
+/* Íconos de estado: ✓ ◐ ! ○. El medio círculo va dibujado. */
+.ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.9em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ic-video {
+  width: 0.78em;
+  min-width: 0;
+  height: 0.78em;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+  vertical-align: -0.08em;
+}
+
+.tv-leyenda .e-validada .ic { color: var(--ok); }
+.tv-leyenda .e-video .ic { color: var(--aviso); }
+.tv-leyenda .e-corregir .ic { color: var(--mal); }
+.tv-leyenda .e-pendiente .ic { color: var(--pendiente); }
+
+/* Barra apilada: validadas, con video y por corregir. */
+.barra-estados {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--pista);
+}
+
+.barra-estados i { display: block; height: 100%; width: 0; transition: width 0.3s; }
+.barra-estados .e-validada { background: var(--ok); }
+.barra-estados .e-video { background: var(--aviso); }
+.barra-estados .e-corregir { background: var(--mal); }
+
+.tarjeta-validacion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tarjeta-validacion[hidden] { display: none; }
+
+.tarjeta-validacion h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.tv-leyenda {
+  margin: 0;
+  color: var(--suave);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.tv-leyenda b { color: var(--texto); }
+
+/* Íconos de estado sobre las glosas de la frase. */
+.glosa-lsc .marca-estado {
+  margin-right: 3px;
+  font-weight: 700;
+}
+
+.glosa-lsc .e-validada .marca-estado { color: var(--ok); }
+.glosa-lsc .e-video .marca-estado { color: var(--aviso); }
+.glosa-lsc .e-corregir .marca-estado { color: var(--mal); }
+.glosa-lsc .e-pendiente .marca-estado { color: var(--pendiente); }
+
+.lateral .glosa-lsc {
+  border: 1px solid var(--borde);
+}
+
+/* ---------- Botones ---------- */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--superficie);
+  color: var(--texto);
+  font: 600 0.95rem "Atkinson Hyperlegible", system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.boton-primario,
+.boton-ok {
+  border-color: var(--primario);
+  background: var(--primario);
+  color: var(--sobre-primario);
+}
+
+.boton-mal {
+  border-color: var(--mal);
+  background: var(--mal);
+  color: var(--fondo);
+}
+
+:root[data-tema="claro"] .boton-mal { color: #FFFFFF; }
+
+.panel button.secondary,
+.noticiero-barra .secondary {
+  border-color: var(--borde);
+}
+
+/* Grupos de botones donde uno queda elegido (velocidad, vista, filtros). */
+.segmentos {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: var(--superficie);
+}
+
+.segmentos button {
+  flex: 1 1 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--suave);
+  font: 600 0.9rem "Atkinson Hyperlegible", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.segmentos button[aria-pressed="true"] {
+  background: var(--primario);
+  color: var(--sobre-primario);
+}
+
+/* ---------- Más opciones ---------- */
+.mas-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+
+.mas-opciones[open] > summary { margin-bottom: 4px; }
+
+.mas-opciones summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.mas-opciones[open] {
+  display: flex;
+}
+
+/* ==========================================================================
+   Modo validar: lista a la izquierda, avatar en el centro y ficha a la derecha.
+   El contenedor deja pasar los gestos al avatar (pointer-events) salvo en sus paneles.
+   ========================================================================== */
+:root {
+  --val-barra: 68px;
+  --val-lista: clamp(260px, 22vw, 340px);
+  --val-ficha: clamp(320px, 28vw, 420px);
+  --val-herr: 76px;
+}
+
+.validar {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.validar[hidden] { display: none; }
+
+.validar > * { pointer-events: auto; }
+
+body.modo-validar .lateral { display: none; }
+
+body.modo-validar #viewer {
+  top: var(--val-barra);
+  right: var(--val-ficha);
+  bottom: var(--val-herr);
+  left: var(--val-lista);
+}
+
+body.modo-validar .loader { left: 50%; }
+
+.val-barra {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: var(--val-barra);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.val-barra h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+
+.val-volver {
+  color: var(--suave);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.val-volver:hover { color: var(--texto); }
+
+.val-progreso {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
+}
+
+.val-progreso-texto {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--suave);
+  font-size: 0.8rem;
+}
+
+.val-nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: var(--suave);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.val-nombre input,
+.val-lista input[type="search"],
+.val-ficha textarea {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--campo);
+  color: var(--texto);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.val-nombre input { width: 220px; }
+
+/* Lista por importancia */
+.val-lista {
+  position: absolute;
+  top: var(--val-barra);
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: var(--val-lista);
+  padding: 16px;
+  border-right: 1px solid var(--borde);
+  background: var(--fondo);
+}
+
+.val-lista h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.val-lista p {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+}
+
+.val-items {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.val-items li { margin: 0 0 3px; }
+
+.val-items button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.val-items button:hover { background: var(--superficie); }
+
+.val-items button[aria-current="true"] {
+  border-color: var(--primario);
+  background: var(--superficie);
+}
+
+.val-items .n {
+  width: 34px;
+  color: var(--suave);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.val-items .g {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.val-items .chip { padding: 1px 8px; font-size: 0.75rem; }
+
+.val-items .vacio {
+  padding: 12px 4px;
+  color: var(--suave);
+  font-size: 0.9rem;
+}
+
+.val-archivo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.val-archivo .boton { min-height: 40px; font-size: 0.85rem; }
+.val-archivo input { display: none; }
+
+/* Herramientas bajo el avatar */
+.val-herramientas {
+  position: absolute;
+  right: var(--val-ficha);
+  bottom: 0;
+  left: var(--val-lista);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--val-herr);
+  padding: 10px 12px;
+  background: var(--fondo);
+  border-top: 1px solid var(--borde);
+}
+
+.val-bucle { font-weight: 400; }
+
+/* Ficha de revisión */
+.val-ficha {
+  position: absolute;
+  top: var(--val-barra);
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: var(--val-ficha);
+  padding: 20px 22px;
+  overflow-y: auto;
+  border-left: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.val-glosa {
+  margin: 0;
+  font-size: 2.3rem;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.val-datos {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.val-datos b { color: var(--texto); font-weight: 700; }
+
+.val-fallas {
+  margin: 0;
+  padding: 10px 14px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.val-fallas legend {
+  padding: 0 6px;
+  color: var(--suave);
+  font-size: 0.88rem;
+}
+
+#val-fallas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#val-fallas label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+#val-fallas input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--mal);
+}
+
+.val-ficha textarea {
+  min-height: 60px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.val-aviso {
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--mal-texto);
+  font-size: 0.88rem;
+}
+
+.val-aviso.ok { color: var(--ok-texto); }
+
+.val-acciones {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.val-acciones #val-validar {
+  grid-column: 1 / -1;
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
+.val-teclas {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.val-lista-boton,
+.val-nombre-movil { display: none; }
+
+/* Pantallas medianas: la ficha se angosta y la lista se esconde tras un botón. */
+@media (max-width: 1100px) {
+  :root { --val-lista: 0px; }
+  .val-lista {
+    z-index: 3;
+    width: min(340px, 90vw);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    transform: translateX(-105%);
+    transition: transform 0.2s;
+  }
+  body.val-lista-abierta .val-lista { transform: none; }
+  .val-lista-boton { display: inline-flex; }
+  .val-progreso { display: none; }
+}
+
+/* Celular: el avatar arriba, las herramientas debajo y la ficha al final. */
+@media (max-width: 760px) {
+  :root {
+    --val-barra: 56px;
+    --val-ficha: 0px;
+    --val-avatar: 40vh;
+  }
+  .val-barra { gap: 10px; padding: 0 12px; }
+  .val-barra h2 { font-size: 1rem; }
+  .val-nombre { display: none; }
+  .val-nombre-movil {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--suave);
+    font-size: 0.85rem;
+  }
+  .val-nombre-movil input {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    background: var(--campo);
+    color: var(--texto);
+    font: inherit;
+  }
+  .val-lista { top: var(--val-barra); }
+  body.modo-validar #viewer {
+    top: var(--val-barra);
+    right: 0;
+    bottom: auto;
+    left: 0;
+    height: var(--val-avatar);
+  }
+  .val-herramientas {
+    top: calc(var(--val-barra) + var(--val-avatar));
+    right: 0;
+    bottom: auto;
+    left: 0;
+    min-height: 0;
+    padding: 6px 8px;
+  }
+  .val-bucle,
+  .solo-ancho { display: none; }
+  .val-herramientas { flex-wrap: nowrap; gap: 6px; }
+  .val-acciones {
+    position: sticky;
+    bottom: calc(-1 * max(14px, env(safe-area-inset-bottom)));
+    margin: 0 -16px;
+    padding: 10px 16px max(14px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--borde);
+    background: var(--superficie);
+  }
+  .val-herramientas .boton { min-height: 40px; padding: 0 12px; }
+  .val-herramientas .segmentos button { min-height: 34px; padding: 0 10px; }
+  .val-ficha {
+    top: calc(var(--val-barra) + var(--val-avatar) + 56px);
+    width: auto;
+    left: 0;
+    padding: 14px 16px max(14px, env(safe-area-inset-bottom));
+    border-left: 0;
+    border-top: 1px solid var(--borde);
+  }
+  .val-glosa { font-size: 1.8rem; }
+  /* Las fallas pasan a fichas que se tocan. */
+  #val-fallas { flex-direction: row; flex-wrap: wrap; }
+  #val-fallas label {
+    padding: 4px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 999px;
+    font-size: 0.88rem;
+  }
+  #val-fallas label:has(input:checked) {
+    border-color: var(--mal);
+    background: var(--mal-fondo);
+    color: var(--mal-texto);
+  }
+  #val-fallas input { width: 16px; height: 16px; }
+  .val-teclas { display: none; }
 }

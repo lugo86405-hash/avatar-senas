@@ -1,5 +1,5 @@
 /**
- * Avatar Señas · Service worker (v56)
+ * Puente LSC · Service worker (v56; v65 guarda también las fuentes de Google)
  *
  * Hace que la página se pueda instalar como app y abrir sin internet:
  * - Página, estilos, código y cerebro-datos.json: primero la red (así un cambio
@@ -8,15 +8,17 @@
  *   cambian sin cambiar su ?v=. Se guardan la primera vez que se usan.
  * - Whisper, el cerebro y el backend (puertos 8001, 8002, 8080) nunca se guardan.
  */
-const VERSION = 'avatar-senas-v64'; // cambiarla borra las copias viejas (señas incluidas)
+const VERSION = 'avatar-senas-v65'; // cambiarla borra las copias viejas (señas incluidas)
 const NUCLEO = `${VERSION}-nucleo`;
 const RECURSOS = `${VERSION}-recursos`;
 
 const INICIALES = [
   './',
   './index.html',
-  './style.css?v=55c',
-  './app.js?v=64',
+  './style.css?v=65',
+  './app.js?v=65',
+  './validacion.js?v=65',
+  './validaciones.json',
   './cerebro-local.js?v=63',
   './cerebro-datos.json',
   './manifest.webmanifest',
@@ -39,8 +41,10 @@ self.addEventListener('activate', (evento) => {
   );
 });
 
-const esRecurso = (url) => /\.(glb|gltf|bin|png|jpg|webp|ktx2)$/i.test(url.pathname)
-  || url.hostname === 'cdn.jsdelivr.net';
+const FUERA_GUARDABLES = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+
+const esRecurso = (url) => /\.(glb|gltf|bin|png|jpg|webp|ktx2|woff2?)$/i.test(url.pathname)
+  || FUERA_GUARDABLES.includes(url.hostname);
 
 async function primeroCache(peticion) {
   const guardada = await caches.match(peticion);
@@ -67,7 +71,7 @@ self.addEventListener('fetch', (evento) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   const mismoOrigen = url.origin === self.location.origin;
-  if (!mismoOrigen && url.hostname !== 'cdn.jsdelivr.net') return; // servicios locales y otros sitios: directo
+  if (!mismoOrigen && !FUERA_GUARDABLES.includes(url.hostname)) return; // servicios locales y otros sitios: directo
   if (url.searchParams.has('overlay')) return;                     // la vista para OBS siempre en vivo
   evento.respondWith(esRecurso(url) ? primeroCache(request) : primeroRed(request));
 });

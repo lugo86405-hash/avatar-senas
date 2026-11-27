@@ -1,5 +1,5 @@
 /**
- * Avatar Señas · Punto de entrada de la aplicación
+ * Puente LSC (antes Avatar Señas) · Punto de entrada de la aplicación
  *
  * Organización del proyecto:
  *   app.js                 → visor 3D (Módulo 1) e interfaz de prueba.
@@ -14,13 +14,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { ControlFacial, EXPRESIONES } from './control-facial.js?v=64';
+import { ControlFacial } from './control-facial.js?v=64';
 // ?v= obliga al navegador a descargar la versión nueva tras un cambio.
 import { SecuenciadorSenas } from './secuenciador-senas.js?v=64';
 import { setEstilo } from './estilo-anime.js?v=51';
 import { TransicionNatural } from './transicion-natural.js?v=51';
 import { InterpreteVivo } from './interprete-vivo.js?v=55';
 import { CerebroLocal } from './cerebro-local.js?v=63';
+import { Validacion, ESTADOS, FALLAS } from './validacion.js?v=65';
 
 /* ==========================================================================
    1. CONFIGURACIÓN
@@ -65,6 +66,7 @@ const CONFIG = {
   modelUrl: `${AVATARES[AVATAR].modelo}?v=51b`, // ?v= obliga a descargar el modelo nuevo.
   animaciones: AVATARES[AVATAR].animaciones,
 
+  // v65: el fondo del escenario sigue al tema de la página (ver TEMAS).
   background: 0x20262e,
 
   camera: {
@@ -118,186 +120,6 @@ const CONFIG = {
     modo: PARAMS.get('cerebro') || 'auto', // 'auto' (local; si no carga, el servidor) | 'local' | 'servidor'
   },
 
-  // Glosas del selector de prueba: las 334 señas del Diccionario básico de la LSC instaladas.
-  devUi: {
-    glosas: [
-      'HOLA', 'ADIOS', 'GRACIAS', 'BUENO', 'BUENOS_DIAS', 'BUENAS_TARDES', 'BUENAS_NOCHES', 'NOCHE',
-      'LO_SIENTO', 'DE_NADA', 'PERDON', 'COMO_ESTA', 'COMO', 'SI', 'NO', 'BIEN',
-      'MAL', 'YO', 'TU', 'EL', 'NOSOTROS', 'USTEDES', 'QUE', 'QUIEN',
-      'DONDE', 'CUANDO', 'POR_QUE', 'CUANTO', 'CUAL', 'MAMA', 'PAPA', 'HERMANO',
-      'HIJO', 'FAMILIA', 'AMIGO', 'AMOR', 'HOY', 'AYER', 'MAÑANA', 'AHORA',
-      'DIA', 'SEMANA', 'QUERER', 'TENER', 'COMER', 'AYUDAR', 'ENTENDER', 'APRENDER',
-      'TRABAJAR', 'ESTUDIAR', 'VIVIR', 'NECESITAR', 'PODER', 'GUSTAR', 'SABER', 'PENSAR',
-      'ESPERAR', 'CASA', 'SORDO', 'OYENTE', 'INTERPRETE', 'SEÑAR', 'BIENVENIDO', 'POR_FAVOR',
-      'NOMBRE', 'MIO', 'SUYO', 'NUESTRO', 'REGULAR',
-      'TUYO', 'USTED', 'ELLOS', 'ATENCION', 'OLVIDAR', 'RECORDAR', 'TAMBIEN', 'NO_PODER', 'NO_SABER', 'NO_IMPORTA',
-      'GROSERO', 'PEREZOSO', 'MOLESTAR', 'INTERES', 'ASISTIR', 'CONFUNDIDO', 'OBEDECER', 'JAMAS', 'CANSON',
-      'EMBARAZO', 'YERNO', 'LUNA_DE_MIEL', 'UNION_LIBRE', 'SEPARADO', 'CATOLICO', 'MATRIMONIO_CATOLICO', 'MATRIMONIO_CIVIL',
-      'BAUTISMO', 'MEJOR', 'MAYOR', 'MENOR', 'PADRINO', 'MATRIMONIO', 'ADOPTAR', 'PADRASTRO', 'MADRASTRA', 'HERMANASTRO',
-      'DIVORCIO', 'COMPROMISO', 'CRISTIANO', 'ATEO',
-      'VIUDO', 'AMANTE', 'HACER_EL_AMOR', 'SEXO', 'SEXUALIDAD',
-      'PERMISO', 'NOS_VEMOS',
-      // tanda 7 (v34): colegio e instituciones
-      'BACHILLERATO', 'BIBLIOTECA', 'CIENCIAS', 'COMPAÑERO', 'CORTAR', 'CURSO', 'DIBUJAR', 'DIPLOMA', 'EDUCACION_FISICA',
-      'ESPAÑOL', 'GEOGRAFIA', 'HISTORIA', 'INGLES', 'INVENTAR', 'KINDER', 'MATEMATICAS', 'PRIMARIA', 'QUIMICA', 'SALON',
-      'TABLERO', 'SUMAR', 'TEMA', 'CALIFICAR', 'BIOLOGIA', 'MANUALIDADES', 'BORRADOR', 'CARTUCHERA', 'COSEDORA', 'CUADERNO',
-      'DICCIONARIO', 'ESFERO', 'HOJA', 'LAPIZ', 'MARCADOR', 'MORRAL', 'PEGANTE', 'REGLA', 'TAJALAPIZ', 'POLICIA', 'ALCALDE',
-      'PRESIDENTE', 'GOBIERNO', 'BANDERA', 'CEDULA', 'LEY', 'VOTAR', 'REUNION', 'SUELDO', 'JUSTICIA', 'PAZ', 'DIOS',
-      'IGLESIA', 'REZAR', 'MISA', 'NAVIDAD', 'BIBLIA', 'SACERDOTE',
-      // tanda 8 (v35): profesiones y naturaleza
-      'ABOGADO', 'ACTOR', 'ARQUITECTO', 'ARTE', 'CAJERO', 'CANTANTE', 'CARPINTERO', 'CELADOR', 'CHEF', 'CHOFER',
-      'CIENTIFICO', 'COMERCIANTE', 'CONTADOR', 'JEFE', 'DIRECTOR', 'ELECTRICISTA', 'ENFERMERA', 'ESCRITOR',
-      'FOTOGRAFO', 'INGENIERO', 'MECANICO', 'MUSICO', 'ODONTOLOGO', 'PELUQUERO', 'PERIODISTA', 'PILOTO', 'PINTOR',
-      'PLOMERO', 'PROFESION', 'PSICOLOGO', 'SECRETARIA', 'VENDEDOR', 'ZAPATERO', 'EXPERIENCIA', 'ARBOL', 'ESTRELLA',
-      'LLUVIA', 'LUNA', 'MAR', 'MONTAÑA', 'NUBE', 'RIO', 'FLOR', 'CAMPO', 'CAMPESINO', 'FINCA', 'PIEDRA', 'PLAYA',
-      'SOL', 'VIENTO',
-      // tanda 9 (v36): geografía, cualidades, colores y calificar
-      'AFRICA', 'AMERICA', 'ASIA', 'AUSTRALIA', 'BARRANQUILLA', 'BRASIL', 'CALI', 'CARTAGENA', 'ECUADOR', 'ESPAÑA',
-      'ESTADOS_UNIDOS', 'EUROPA', 'MEDELLIN', 'MUNDO', 'PANAMA', 'PERU', 'VENEZUELA', 'ALTO', 'ANCHO', 'ANGOSTO',
-      'CALIENTE', 'CLARO', 'COMPLETO', 'CORRECTO', 'CORTO', 'COSA', 'DAÑADO', 'FINO', 'FRIO', 'LARGO',
-      'NUEVO', 'OSCURO', 'PARECIDO', 'PELIGROSO', 'PESADO', 'SUCIO', 'ULTIMO', 'VACIO', 'VIEJO', 'ANARANJADO',
-      'COLOR', 'GRIS', 'MORADO', 'CUIDADO', 'DESPACIO', 'IMPOSIBLE', 'MISMO', 'NORMAL', 'PEOR', 'RAPIDO',
-      'URGENTE',
-      // tanda 10 (v37): animales, números, espacio y cantidad
-      'ACUARIO', 'ARAÑA', 'BALLENA', 'BURRO', 'CARACOL', 'CONDOR', 'DELFIN', 'ELEFANTE', 'GALLO', 'HORMIGA',
-      'JAULA', 'JIRAFA', 'MICO', 'MORDER', 'MOSCA', 'NIDO', 'OSO', 'OVEJA', 'PATO', 'PEZ',
-      'PICAR', 'SAPO', 'TIBURON', 'TORO', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS',
-      'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'CINCUENTA', 'CIEN', 'MIL', 'MILLON', 'NUMERO', 'ABAJO', 'ARRIBA',
-      'ADELANTE', 'DETRAS', 'ADENTRO', 'AFUERA', 'CERCA', 'LEJOS', 'NORTE', 'OCCIDENTE', 'ORIENTE', 'SUR',
-      'MAS', 'MENOS', 'NADA',
-      // tanda 11 (v38): características y sentimientos
-      'AGIL', 'AUTORITARIO', 'BESAR', 'CAPAZ', 'VALIENTE', 'FUERTE', 'CHISTOSO', 'COBARDE', 'CONFIANZA', 'CONTENTO',
-      'COQUETO', 'CUMPLIDO', 'CURIOSO', 'DEPRIMIDO', 'DESCONCERTADO', 'DESOBEDIENTE', 'DESOCUPADO', 'DESORDENADO', 'DIGNIDAD', 'ELEGANTE',
-      'EMOCIONADO', 'ENAMORAR', 'FURIOSO', 'ENVIDIOSO', 'EXPRESIVO', 'FAMOSO', 'FIEL', 'INFIEL', 'FLACO', 'GENEROSO',
-      'GORDO', 'HONESTO', 'IGNORAR', 'INCUMPLIDO', 'INOCENTE', 'JUICIOSO', 'LIDER', 'LOCO', 'MALO', 'MENTIROSO',
-      'OBEDIENTE', 'ODIO', 'OPTIMISTA', 'ORGULLOSO', 'PACIENCIA', 'PENA', 'PESIMISTA', 'POBRE', 'RESPONSABLE', 'SEGURO',
-      'SERIO', 'SOLO', 'TERCO', 'TIERNO', 'TIMIDO',
-      // tanda 12 (v39): frutas, verduras, comidas y bebidas
-      'AGUACATE', 'AJO', 'AJI', 'ARVEJA', 'BANANO', 'COCO', 'CEBOLLA', 'CURUBA', 'DURAZNO', 'FRESA',
-      'FRIJOL', 'GUAYABA', 'HABICHUELA', 'LECHUGA', 'LIMON', 'MANDARINA', 'MANGO', 'MANZANA', 'MAZORCA', 'MORA',
-      'PAPAYA', 'PERA', 'PIÑA', 'UVA', 'TOMATE', 'VERDURA', 'YUCA', 'ZANAHORIA', 'ACEITE', 'ACIDO',
-      'AREPA', 'AROMATICA', 'AZUCAR', 'CAMARON', 'CERVEZA', 'COCINAR', 'COMIDA', 'ENSALADA', 'ESPESO', 'GALLETA',
-      'GELATINA', 'HAMBURGUESA', 'JAMON', 'MERCADO', 'PANELA', 'PASTA', 'PERRO_CALIENTE', 'PIZZA', 'PONQUE', 'SAL',
-      'SALSA_DE_TOMATE', 'SANDUCHE', 'TAMAL', 'VINO', 'YOGUR',
-      // tanda 13 (v40): ciudad y transporte
-      'AEROPUERTO', 'ALMACEN', 'AUTOPISTA', 'AVENIDA', 'BASURA', 'BOMBA_DE_GASOLINA', 'CAFETERIA', 'CAJERO_AUTOMATICO',
-      'CARCEL', 'CARNICERIA', 'CARRERA', 'CEMENTERIO', 'CENTRO_COMERCIAL', 'CENTRO', 'DIRECCION', 'DROGUERIA',
-      'EDIFICIO', 'ESQUINA', 'ESTACION_DE_POLICIA', 'ESTADIO', 'FABRICA', 'FERRETERIA', 'FUNERARIA', 'HOTEL',
-      'LIBRERIA', 'MUSEO', 'OFICINA', 'PANADERIA', 'PAPELERIA', 'PARADERO', 'PARQUEADERO', 'PELUQUERIA',
-      'PLAZA_DE_MERCADO', 'PORTERIA', 'PUENTE', 'SEMAFORO', 'SUPERMERCADO', 'TERMINAL', 'AMBULANCIA', 'BUSETA',
-      'CAMION', 'CARRETERA', 'CHOCAR', 'FLOTA', 'FRENAR', 'HELICOPTERO', 'PITAR', 'TRANCON',
-      'TRANSMILENIO', 'TREN', 'VELOZ', 'VIAJAR',
-      // tanda 14 (v41): hogar y vivienda
-      'ALICATE', 'ALMOHADA', 'APAGAR_LA_LUZ', 'PRENDER_LA_LUZ', 'ARMARIO', 'ASCENSOR', 'ASPIRADORA', 'BALDE',
-      'BANDEJA', 'BATIDORA', 'BOTELLA', 'BRILLADORA', 'CAJA', 'CANECA', 'COBIJA', 'COMEDOR',
-      'COPA', 'CORTINA', 'CUADRO', 'CUCHILLO', 'DESTORNILLADOR', 'DETERGENTE', 'DUCHA', 'ESCOBA',
-      'ESPEJO', 'ESPONJA', 'ESTUFA', 'EXTINGUIDOR', 'FOSFORO', 'HERRAMIENTA', 'HORNO', 'JARDIN',
-      'JARRA', 'LADRILLO', 'LAMPARA', 'LAVADORA', 'LICUADORA', 'LINTERNA', 'MANGUERA', 'MARTILLO',
-      'OLLA', 'ORGANIZAR', 'PARED', 'PATIO', 'PINTURA', 'PLANCHA', 'POCILLO', 'SARTEN',
-      'SERVILLETA', 'SOFA', 'TALADRO', 'TAPETE', 'TENDER_LA_CAMA', 'TENEDOR', 'TIMBRE', 'TRAPERO',
-      'TRASTEAR', 'TUBERIA',
-      // tanda 15 (v42): deportes y actividades
-      'AJEDREZ', 'ARBITRO', 'ATLETISMO', 'BALON', 'BILLAR', 'BALONCESTO', 'BOXEO', 'BUCEO',
-      'CAMPEON', 'CAMPEONATO', 'CANCHA', 'DEPORTE', 'EMPATAR', 'ENTRENAR', 'FUTBOL', 'GANAR',
-      'GOL', 'NADAR', 'PARTIDO', 'PATINAJE', 'PERDER', 'REGLAMENTO', 'TEJO', 'TENIS',
-      'VOLEIBOL', 'TROFEO', 'ACEPTAR', 'ACOMPAÑAR', 'ARREGLAR', 'CAER', 'CAMBIAR', 'CINE',
-      'CONCIERTO', 'CUIDAR', 'ENVIAR', 'ESCOGER', 'EXTRAÑAR', 'FALTAR', 'FIESTA', 'GUARDAR',
-      'GUITARRA', 'INVITAR', 'LLENAR', 'LLEVAR', 'MOSTRAR', 'PASEAR', 'PELICULA', 'PIANO',
-      'PRACTICAR', 'PRESTAR', 'REGALAR', 'RESPETAR', 'SALTAR', 'SUERTE', 'VACACIONES',
-      // tanda 16 (v43): vestuario, aseo personal y salud
-      'ABRIGO', 'SACO', 'CHAQUETA', 'BILLETERA', 'BLUSA', 'CADENA', 'CAMISETA', 'CINTURON',
-      'CORBATA', 'DESVESTIRSE', 'FALDA', 'LANA', 'MEDIAS', 'PIJAMA', 'SOMBRERO', 'SUDADERA',
-      'TELA', 'UNIFORME', 'AFEITAR', 'BAÑAR', 'CEPILLAR', 'CEPILLO_DE_DIENTES', 'CHAMPU', 'COLORETE',
-      'CREMA_DE_DIENTES', 'CREMA_DE_MANOS', 'DESODORANTE', 'EMBETUNAR', 'JABON', 'MAQUILLAJE', 'PAÑAL', 'PAPEL_HIGIENICO',
-      'PERFUME', 'TALCO', 'TOALLA', 'TOALLA_HIGIENICA', 'ACNE', 'ALGODON', 'CANCER', 'CIRUGIA',
-      'DESMAYARSE', 'DIARREA', 'EXAMEN_MEDICO', 'FRACTURA', 'INFARTO', 'INFECCION', 'JERINGA', 'RADIOGRAFIA',
-      'SIDA', 'TERMOMETRO',
-      // tanda 17 (v44): inteligencia, tiempo, comunicación y cultura sorda
-      'CONOCER', 'DECIDIR', 'CREER', 'NO_CREER', 'DEFENDER', 'DESCUBRIR', 'DUDAR', 'IDEA',
-      'NO_ENTENDER', 'PREOCUPAR', 'PROBLEMA', 'RAZON', 'VERDAD', 'DE_PRONTO', 'FECHA', 'HACE_MUCHO_TIEMPO',
-      'MINUTO', 'POR_LA_MAÑANA', 'PRONTO', 'PROXIMO', 'TIEMPO', 'TODO_EL_DIA', 'ACONSEJAR', 'CHISME',
-      'CONTAR', 'CORREO', 'DISCUTIR', 'ENTONCES', 'GRITAR', 'OTRO', 'PALABRA', 'REPETIR',
-      'SECRETO', 'SILENCIO', 'TAMPOCO', 'ALFABETO_MANUAL', 'AUDIFONO', 'AUDIOMETRIA', 'COPIAR', 'FENASCOL',
-      'ORALIZAR', 'FONOAUDIOLOGO', 'HIPOACUSICO', 'INSOR', 'INTEGRAR', 'LENGUA_DE_SEÑAS', 'SORDO_CIEGO', 'TELEFONO_DE_TEXTO',
-      // tanda 18 (v45): tecnología y administración, gobierno y comercio
-      'ANTENA_PARABOLICA', 'CALCULADORA', 'CAMARA', 'CELULAR', 'COMPUTADOR', 'DISCO_COMPACTO', 'EQUIPO_DE_SONIDO', 'FAX',
-      'FILMADORA', 'FOTOCOPIADORA', 'IMPRESORA', 'INTERNET', 'TELEFONO', 'VIDEO', 'ADMINISTRAR', 'AHORRAR',
-      'ASOCIACION', 'CHEQUE', 'CONGRESO', 'CONSIGNAR', 'COOPERATIVA', 'CREDITO', 'CULTURA', 'DEMOCRACIA',
-      'DEPARTAMENTO', 'DERECHO', 'DEUDA', 'ETICA', 'FACTURA', 'FIRMAR', 'FRONTERA', 'GASTAR',
-      'HOJA_DE_VIDA', 'IMPUESTO', 'MULTA', 'INDIGENA', 'INSTITUTO', 'JUNTA', 'LIBRE', 'MANIFESTACION',
-      'PESO', 'PENSIONADO', 'POLITICO', 'PUEBLO', 'QUIEBRA', 'RENUNCIAR', 'SINDICATO', 'SOCIO',
-      // tanda 19 (v47): acciones y distracciones, sanciones sociales y vicios, religión
-      'ABANDONAR', 'ACOSTUMBRAR', 'AGREGAR', 'APLAZAR', 'APOYAR', 'APROVECHAR', 'CARNAVAL', 'COGER',
-      'COLGAR', 'CONTINUAR', 'DEPENDER', 'DISCOTECA', 'ENGAÑAR', 'EQUIVOCARSE', 'ESPARCIR', 'ESTRENAR',
-      'FLAUTA', 'HABER', 'METER', 'MUSICA', 'PARECER', 'PARTICIPAR', 'PROGRESAR', 'PROHIBIR',
-      'ABORTAR', 'ABUSAR', 'ABUSO_SEXUAL', 'CASTIGAR', 'ALCOHOLISMO', 'CULPABLE', 'DROGADICCION', 'FUMAR',
-      'ENEMIGO', 'HOMICIDIO', 'LADRON', 'NARCOTRAFICO', 'PELEAR', 'ROBAR', 'SECUESTRAR', 'ALMA',
-      'COMULGAR', 'DIABLO', 'FE', 'JESUS', 'MILAGRO', 'MONJA', 'ORACION', 'PECADO',
-      'RELIGION', 'SEMANA_SANTA',
-      // tanda 20 (v48): ser humano (cuerpo, fisiología, vestuario) y profesiones
-      'ADULTO', 'ALGUNOS', 'CADA_UNO', 'ANCIANO', 'ELLOS_DOS', 'HOMOSEXUAL', 'NOSOTROS_DOS', 'TU_MISMO',
-      'YO_MISMO', 'BIGOTE', 'CALVO', 'CANOSO', 'CEJA', 'ESTOMAGO', 'FRENTE', 'HOMBRO',
-      'MENTON', 'MONO', 'MORENO', 'PENE', 'PESTAÑAS', 'UÑAS', 'VAGINA', 'VELLUDO',
-      'ASUSTARSE', 'CRECER', 'DEBIL', 'OBSERVAR', 'OLER', 'RESPIRAR', 'TOCAR', 'BRASIER',
-      'CUERO', 'INTERIORES', 'MODA', 'PANTALONCILLOS', 'VESTIDO_DE_BAÑO', 'ACTIVIDAD', 'DIBUJANTE', 'EMPLEADA_DOMESTICA',
-      'ESCULTOR', 'FILOSOFO', 'LINGUISTA', 'LOTERO', 'MENSAJERO', 'MODISTA', 'PEDIATRA', 'REINA',
-      // tanda 21 (v49): lenguaje y comunicación, educación, naturaleza
-      'APARTE', 'COMUNICAR', 'CRITICAR', 'DISCURSO', 'ESPERE', 'FRASE', 'HASTA', 'INSULTAR',
-      'JUSTIFICAR', 'LENGUA', 'PARA', 'PERO', 'QUE_ALIVIO', 'SIGNIFICAR', 'VOCABULARIO', 'ASORVAL',
-      'SOCIEDAD_DE_SORDOS_DE_BOGOTA', 'MAS_O_MENOS', 'CUAL_DE_LOS_DOS', 'PARA_QUE', 'QUE_ES_ESO', 'QUE_LE_PASA', 'AGRADECER', 'FELICITAR',
-      'PRESENTAR_A', 'BILINGUISMO', 'CALIFICACION', 'FALLAR', 'GANAR_EL_AÑO', 'FISICA', 'MEDIR', 'PASAR_EL_AÑO',
-      'PERDER_EL_AÑO', 'PUPITRE', 'HORARIO_DE_CLASES', 'LONCHERA', 'PINCEL', 'ARCO_IRIS', 'CIELO', 'PETROLEO',
-      'SEMBRAR', 'HOGAR', 'MACHISMO', 'PRIVADO', 'AÑO_PASADO', 'SEISCIENTOS',
-      // tanda 22 (v50): las últimas del diccionario
-      'ACUEDUCTO', 'ENERGIA_ELECTRICA', 'GARAJE', 'REGISTRADORA', 'COLECTIVO', 'PASE', 'PINCHAR', 'TRANSPORTAR',
-      'CASETE_VHS', 'CEMENTO', 'CHIMENEA', 'FLORERO', 'CAPITAL', 'FISCAL', 'HIMNO_NACIONAL', 'MINISTERIO',
-      'VOCAL', 'TELEVISOR', 'ELEGIR', 'INSTITUTO_DE_CIEGOS_Y_SORDOS',
-      // v54: señas nuevas del video de Fundesor
-      'ELLA', 'POR_DONDE', 'QUE_PASO',
-      // tanda 2 (v22)
-      'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO',
-      'NUEVE', 'DIEZ', 'ROJO', 'AZUL', 'AMARILLO', 'VERDE', 'NEGRO', 'BLANCO',
-      'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO', 'DECIR',
-      'HABLAR', 'VER', 'OIR', 'PREGUNTAR', 'RESPONDER', 'EXPLICAR', 'LEER', 'ESCRIBIR',
-      'ENSEÑAR', 'LLAMAR', 'PROFESOR', 'ESTUDIANTE', 'CLASE', 'COLEGIO', 'UNIVERSIDAD', 'LIBRO',
-      'TAREA', 'EXAMEN', 'COLOMBIA', 'BOGOTA', 'CIUDAD', 'PAIS', 'NOTICIERO', 'PERIODICO',
-      'TELEVISION', 'AQUI', 'ALLA', 'YA', 'MUCHO', 'POCO', 'TODOS', 'FUTURO',
-      'GRANDE', 'PEQUEÑO', 'BONITO', 'IMPORTANTE', 'FACIL', 'DIFICIL', 'IGUAL', 'DIFERENTE',
-      'CAMINAR', 'CORRER', 'DORMIR', 'JUGAR', 'TOMAR', 'COMPRAR', 'PAGAR', 'SALIR',
-      'ENTRAR', 'VENIR', 'TERMINAR', 'EMPEZAR', 'FELIZ', 'TRISTE', 'CANSADO', 'ENFERMO',
-      'HOSPITAL', 'MEDICO', 'PERSONA', 'HOMBRE', 'MUJER', 'NIÑO', 'BEBE', 'ESPOSO',
-      'NOVIO', 'AGUA', 'PAN', 'CAFE', 'PLATA',
-      // tanda 3 (v23)
-      'MARZO', 'ENERO', 'FEBRERO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO',
-      'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE', 'MES', 'AÑO', 'ANTES', 'DESPUES',
-      'SIEMPRE', 'NUNCA', 'TARDE', 'TEMPRANO', 'HORA', 'OTRA_VEZ', 'TODAVIA', 'A_VECES',
-      'MAS_TARDE', 'UN_MOMENTO', 'DESAYUNO', 'ALMUERZO', 'ARROZ', 'CARNE', 'POLLO', 'PESCADO',
-      'HUEVO', 'LECHE', 'JUGO', 'GASEOSA', 'SOPA', 'QUESO', 'FRUTA', 'HELADO',
-      'RICO', 'DULCE', 'CHOCOLATE', 'EMPANADA', 'NARANJA', 'CARRO', 'BUS', 'MOTO',
-      'BICICLETA', 'AVION', 'TAXI', 'BARCO', 'MANEJAR', 'PARAR', 'CALLE', 'BARRIO',
-      'TIENDA', 'BANCO', 'PARQUE', 'RESTAURANTE', 'BRAVO', 'ABURRIDO', 'MIEDO', 'TRANQUILO',
-      'OCUPADO', 'AMABLE', 'INTELIGENTE', 'FEO', 'BUSCAR', 'ABRIR', 'CERRAR', 'DAR',
-      'TRAER', 'HACER', 'VISITAR', 'BAILAR', 'CANTAR', 'PEDIR', 'ENCONTRAR', 'CARO',
-      'BARATO', 'GRATIS',
-      // tanda 4 (v24)
-      'ABUELO', 'PRIMO', 'TIO', 'SOBRINO', 'NIETO', 'CUÑADO', 'SUEGRO', 'PADRES',
-      'CASADO', 'SOLTERO', 'CABEZA', 'CARA', 'OJOS', 'NARIZ', 'BOCA', 'OREJA',
-      'DIENTES', 'CABELLO', 'CUELLO', 'BRAZO', 'MANOS', 'DEDOS', 'PIERNAS', 'PIES',
-      'ESPALDA', 'CORAZON', 'CUERPO', 'GRIPA', 'TOS', 'MEDICAMENTO', 'INYECCION', 'SALUD',
-      'SANO', 'SANGRE', 'MAREO', 'HAMBRE', 'SED', 'LLORAR', 'REIR', 'DESCANSAR',
-      'DESPERTAR', 'SENTARSE', 'SENTIR', 'NACER', 'MORIR', 'VIDA', 'SOÑAR', 'ANIMAL',
-      'PERRO', 'GATO', 'CABALLO', 'VACA', 'CERDO', 'GALLINA', 'PAJARO', 'RATON',
-      'CONEJO', 'MARIPOSA', 'LEON', 'TORTUGA', 'CULEBRA', 'BAÑO', 'CAMA', 'COCINA',
-      'MESA', 'SILLA', 'PUERTA', 'VENTANA', 'LLAVE', 'LUZ', 'NEVERA', 'VASO',
-      'PLATO', 'CUCHARA', 'LAVAR', 'LIMPIAR', 'BARRER', 'ALCOBA', 'SALA', 'APARTAMENTO',
-      'ESCALERA', 'ROPA', 'CAMISA', 'PANTALON', 'ZAPATO', 'VESTIRSE', 'RELOJ', 'BOLSO',
-      'CACHUCHA', 'CUMPLEAÑOS',
-    ],
-    secuencia: [
-      { glosa: 'HOLA', duracion: 1.2, expresion: 'sonrisa' },
-      { glosa: 'GRACIAS', duracion: 1.5, expresion: 'asentir' },
-    ],
-  },
 };
 
 /* ==========================================================================
@@ -337,7 +159,10 @@ class AvatarViewer {
   #createScene() {
     this.scene = new THREE.Scene();
     // En la vista para OBS no hay fondo: OBS pone el avatar encima del video.
-    this.scene.background = MODO_OVERLAY ? null : new THREE.Color(CONFIG.background);
+    // v65: un solo THREE.Color que cambia con el tema (estilo-anime.js guarda esta
+    // misma referencia como fondo realista, así que también la sigue).
+    this.colorFondo = new THREE.Color(TEMAS[temaActual()].escena);
+    this.scene.background = MODO_OVERLAY ? null : this.colorFondo;
   }
 
   #createCamera() {
@@ -637,6 +462,49 @@ class AvatarViewer {
   };
 }
 
+
+/* ==========================================================================
+   v65 · Temas: Arena clara y Alto contraste (el oscuro)
+   ========================================================================== */
+
+const TEMAS = {
+  claro: { escena: 0xE9E1D3, barra: '#FBF7F0', boton: '◐ Alto contraste' },
+  oscuro: { escena: 0x333333, barra: '#000000', boton: '☀ Arena clara' },
+};
+
+/** El tema lo pone index.html antes de pintar (elección guardada o el del sistema). */
+function temaActual() {
+  return document.documentElement.dataset.tema === 'oscuro' ? 'oscuro' : 'claro';
+}
+
+function aplicarTema(tema, viewer, guardar = false) {
+  const datos = TEMAS[tema] ?? TEMAS.claro;
+  document.documentElement.dataset.tema = tema;
+  document.getElementById('meta-tema')?.setAttribute('content', datos.barra);
+  viewer?.colorFondo?.set(datos.escena);
+  document.querySelectorAll('.boton-tema').forEach((boton) => {
+    boton.setAttribute('aria-pressed', String(tema === 'oscuro'));
+    boton.querySelector('.boton-tema-texto').textContent = datos.boton.slice(2);
+    boton.firstElementChild.textContent = datos.boton[0];
+  });
+  if (guardar) {
+    try { localStorage.setItem('puente-tema', tema); } catch { /* sin almacenamiento */ }
+  }
+}
+
+function setupTema(viewer) {
+  aplicarTema(temaActual(), viewer);
+  document.querySelectorAll('.boton-tema').forEach((boton) => boton.addEventListener('click', () => {
+    aplicarTema(temaActual() === 'oscuro' ? 'claro' : 'oscuro', viewer, true);
+  }));
+  // Sin elección guardada, sigue al sistema si este cambia (por ejemplo, de noche).
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', (e) => {
+    let guardado = null;
+    try { guardado = localStorage.getItem('puente-tema'); } catch { /* sin almacenamiento */ }
+    if (!guardado) aplicarTema(e.matches ? 'oscuro' : 'claro', viewer);
+  });
+}
+
 /* ==========================================================================
    3. INTERFAZ Y ARRANQUE
    ========================================================================== */
@@ -647,9 +515,7 @@ const ui = {
   status: document.getElementById('status'),
   progressBar: document.getElementById('progress-bar'),
   panel: document.getElementById('dev-panel'),
-  glossSelect: document.getElementById('gloss-select'),
   glosaLsc: document.getElementById('glosa-lsc'),
-  expressionSelect: document.getElementById('expression-select'),
   phraseInput: document.getElementById('phrase-input'),
   phraseButton: document.getElementById('phrase-button'),
   micButton: document.getElementById('mic-button'),
@@ -679,6 +545,10 @@ const ui = {
   indicatorName: document.getElementById('sign-name'),
   indicatorDetail: document.getElementById('sign-detail'),
   indicatorBar: document.getElementById('sign-progress-bar'),
+  signEstado: document.getElementById('sign-estado'),
+  tarjetaValidacion: document.getElementById('tarjeta-validacion'),
+  tvCuenta: document.getElementById('tv-cuenta'),
+  tvLeyenda: document.getElementById('tv-leyenda'),
 };
 
 function showProgress(percent) {
@@ -754,11 +624,20 @@ function mostrarGlosaLsc(datos) {
     linea.className = 'oracion';
     o.glosas.forEach((glosa, i) => {
       const g = document.createElement('span');
+      if (i) linea.append(' ');
       if (o.con_sena && !o.con_sena[i]) {
         g.className = 'deletreo';
         g.title = 'Sin seña: se deletrea';
+      } else if (validacion?.tiene(glosa)) {
+        // v65: cada seña muestra si ya está validada (✓), revisada con video (◐), etc.
+        const estado = validacion.estado(glosa);
+        g.className = `e-${estado}`;
+        g.title = ESTADOS[estado].nombre;
+        const icono = iconoEstado(estado);
+        icono.classList.add('marca-estado');
+        g.append(icono);
       }
-      g.textContent = (i ? ' ' : '') + glosa;
+      g.append(glosa);
       linea.append(g);
     });
     if (o.tipo === 'pregunta_abierta' || o.tipo === 'pregunta_si_no') linea.append('(?)');
@@ -1256,24 +1135,506 @@ function setupOverlay(viewer, vivo) {
   setInterval(vigilar, 5000);
 }
 
-function setupDevUi(viewer, sequencer) {
-  // La primera opción no es una glosa: así elegir cualquiera dispara "change".
-  const elegir = new Option('Elegir…', '', true, true);
-  elegir.disabled = true;
-  ui.glossSelect.replaceChildren(elegir, ...CONFIG.devUi.glosas.map((glosa) => new Option(glosa, glosa)));
-  ui.expressionSelect.replaceChildren(...Object.keys(EXPRESIONES).map((name) => new Option(name, name)));
+/* ==========================================================================
+   v65 · Validación de señas
+   ========================================================================== */
 
-  // Sin botones: al cambiar la glosa o la expresión, el avatar reproduce la
-  // glosa elegida con esa expresión.
-  const reproducirSeleccion = () => {
-    if (!ui.glossSelect.value) return;
-    // Los archivos no llevan tildes ni Ñ (MAÑANA -> MANANA.glb), igual que en el backend
-    const glosa = ui.glossSelect.value;
-    const archivo = `animations/${glosa.normalize('NFD').replace(/[\u0300-\u036f]/g, '')}.glb`;
-    sequencer.reproducirGlosa(glosa, { archivo, expresion: ui.expressionSelect.value });
+/* Se descarga al abrir la página, en paralelo con el avatar. */
+let validacion = null;
+const cargaValidacion = Validacion.cargar('./validaciones.json').then((v) => {
+  validacion = v;
+  return v;
+});
+
+/** Cómo se ve la cara de cada expresión del diccionario, en palabras. */
+const CARAS = {
+  neutral: 'neutra',
+  sonrisa: 'sonrisa',
+  sonrisa_suave: 'sonrisa suave',
+  cejas_arriba: 'cejas arriba',
+  ceno: 'ceño fruncido',
+  labios_fruncidos: 'labios fruncidos',
+  boca_abierta: 'boca abierta',
+  tristeza: 'tristeza: cejas al centro y boca hacia abajo',
+  mejillas_infladas: 'mejillas infladas',
+  mejillas_hundidas: 'mejillas hundidas',
+  enojo: 'enojo: ceño y boca apretada',
+  duda: 'duda: una ceja arriba y boca de lado',
+  negar: 'la cabeza niega',
+  asentir: 'la cabeza asiente, media sonrisa',
+  sorpresa: 'sorpresa: cejas arriba y ojos abiertos',
+  asco: 'asco: nariz arrugada',
+  guino: 'guiño',
+  lengua_fuera: 'lengua afuera',
+  ruego: 'ruego: cejas al centro y cabeza ladeada',
+  pregunta_wh: 'ceño y comisuras hacia abajo',
+  pregunta_que: 'ceño y labio de arriba levantado',
+  pregunta_cuando: 'ceño y labios en trompa',
+  pregunta_cuanto: 'ceño y ojos entrecerrados',
+  pregunta_amable: 'cejas arriba y media sonrisa',
+  pronombre: 'labios un poco fruncidos',
+  pronombre_izq: 'labios fruncidos, mira a la izquierda',
+  pronombre_der: 'labios fruncidos, mira a la derecha',
+  contento: 'contento: cejas arriba y sonrisa',
+  alegre: 'alegre: cejas arriba y sonrisa abierta',
+  somnoliento: 'ojos medio cerrados y cabeza ladeada',
+  pena: 'pena: cejas al centro y boca hacia abajo',
+  lo_siento: 'ojos cerrados y cabeza baja',
+};
+
+const sinTildes = (texto) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+/** Archivo, duración y expresión de una seña (del cerebro local, o deducidos del nombre). */
+function datosSena(glosa) {
+  const [archivo, , expresion] = cerebroLocal?.senas.get(glosa) ?? [`animations/${sinTildes(glosa)}.glb`, null, null];
+  return { archivo, expresion: expresion || 'neutral' };
+}
+
+/** Ícono de un estado. El de "con video" (medio círculo) se dibuja con CSS: el
+ *  carácter ◐ sale diminuto o deforme en muchas fuentes. */
+function iconoEstado(estado) {
+  const icono = document.createElement('span');
+  icono.className = `ic ic-${estado}`;
+  icono.setAttribute('aria-hidden', 'true');
+  if (estado !== 'video') icono.textContent = (ESTADOS[estado] ?? ESTADOS.pendiente).icono;
+  return icono;
+}
+
+function pintarChip(chip, estado, corto = false) {
+  const e = ESTADOS[estado] ?? ESTADOS.pendiente;
+  chip.className = `chip e-${estado}`;
+  chip.replaceChildren(iconoEstado(estado), corto ? e.corto : e.nombre);
+}
+
+function pintarBarra(barra, r) {
+  const pct = (n) => `${r.total ? (100 * n) / r.total : 0}%`;
+  barra.querySelector('.e-validada').style.width = pct(r.validada);
+  barra.querySelector('.e-video').style.width = pct(r.video);
+  barra.querySelector('.e-corregir').style.width = pct(r.corregir);
+}
+
+/** Tarjeta de la columna: cuántas van y el botón para validar. */
+function actualizarTarjeta() {
+  if (!validacion?.orden.length) return;
+  const r = validacion.resumen();
+  ui.tvCuenta.textContent = `${r.validada} de ${r.total} señas`;
+  pintarBarra(ui.tarjetaValidacion.querySelector('.barra-estados'), r);
+  ui.tvLeyenda.replaceChildren(
+    ...[['validada', 'validadas'], ['video', 'con video'], ['corregir', 'por corregir'], ['pendiente', 'sin validar']]
+      .flatMap(([k, texto], i) => {
+        const b = document.createElement('b');
+        b.append(iconoEstado(k), ` ${r[k]}`);
+        b.className = `e-${k}`;
+        return [i ? ' · ' : '', b, ` ${texto}`];
+      }),
+  );
+  ui.tarjetaValidacion.hidden = false;
+}
+
+/** Chip de la seña actual: validada, con video, etc. Las letras del deletreo no llevan. */
+function mostrarEstadoSena(glosa) {
+  if (!glosa || !validacion?.tiene(glosa)) {
+    ui.signEstado.hidden = true;
+    return;
+  }
+  pintarChip(ui.signEstado, validacion.estado(glosa), true);
+  ui.signEstado.hidden = false;
+}
+
+/**
+ * Mueve la cámara a una vista: el plano medio de siempre (frente), de lado (para
+ * ver la profundidad de la mano derecha) o la cara de cerca (cejas y boca).
+ */
+function vistaCamara(viewer, vista, animar = true) {
+  const camara = viewer.camera;
+  const controles = viewer.controls;
+  const desde = { pos: camara.position.clone(), obj: controles.target.clone() };
+  viewer.encuadrar(); // Deja la cámara en el plano medio de frente.
+  const pos = camara.position.clone();
+  const obj = controles.target.clone();
+  const distancia = pos.distanceTo(obj);
+  if (vista === 'lado') {
+    // El avatar mira hacia +z y su mano derecha está en -x: la cámara va por ese lado.
+    const angulo = THREE.MathUtils.degToRad(-62);
+    pos.set(obj.x + Math.sin(angulo) * distancia, obj.y, obj.z + Math.cos(angulo) * distancia);
+  } else if (vista === 'cara') {
+    const altura = viewer.alturaModelo;
+    const cabeza = [...viewer.bones.values()].find((hueso) => /head$/i.test(hueso.name));
+    if (cabeza) cabeza.getWorldPosition(obj);
+    else obj.set(0, altura * 0.9, 0);
+    obj.y += altura * 0.045; // El hueso de la cabeza está en la base del cráneo.
+    pos.set(obj.x, obj.y, obj.z + altura * 0.36);
+  }
+  if (!animar) {
+    camara.position.copy(pos);
+    controles.target.copy(obj);
+    controles.update();
+    return;
+  }
+  camara.position.copy(desde.pos);
+  controles.target.copy(desde.obj);
+  const inicio = performance.now();
+  const paso = (ahora) => {
+    const k = Math.min(1, (ahora - inicio) / 450);
+    const suave = k < 0.5 ? 2 * k * k : 1 - ((-2 * k + 2) ** 2) / 2;
+    camara.position.lerpVectors(desde.pos, pos, suave);
+    controles.target.lerpVectors(desde.obj, obj, suave);
+    controles.update();
+    if (k < 1) requestAnimationFrame(paso);
   };
-  ui.glossSelect.addEventListener('change', reproducirSeleccion);
-  ui.expressionSelect.addEventListener('change', reproducirSeleccion);
+  requestAnimationFrame(paso);
+}
+
+/**
+ * Modo validar (#validar): lista por importancia, el avatar repite la seña elegida
+ * y la ficha para aprobarla o anotar qué está mal. Teclas V, C, S y R.
+ */
+function setupValidar(viewer, sequencer) {
+  const $ = (id) => document.getElementById(id);
+  const v = {
+    seccion: $('validar'),
+    cuenta: $('val-cuenta'),
+    barra: document.querySelector('.val-progreso .barra-estados'),
+    nombre: $('val-nombre'),
+    nombreMovil: $('val-nombre-movil'),
+    buscar: $('val-buscar'),
+    items: $('val-items'),
+    filtros: [...document.querySelectorAll('.filtros [data-filtro]')],
+    velocidades: [...document.querySelectorAll('[data-velocidad]')],
+    vistas: [...document.querySelectorAll('[data-vista]')],
+    puesto: $('val-puesto'),
+    estado: $('val-estado'),
+    glosa: $('val-glosa'),
+    datos: $('val-datos'),
+    fallas: $('val-fallas'),
+    nota: $('val-nota'),
+    aviso: $('val-aviso'),
+    listaBoton: document.querySelector('.val-lista-boton'),
+  };
+
+  let activo = false;
+  let actual = null;
+  let filtro = 'pendientes';
+  let vista = 'frente';
+  let turno = 0; // Cambia cada vez que el bucle debe parar o empezar de nuevo.
+  let velocidadAntes = 1;
+
+  try { actual = localStorage.getItem('puente-ultima'); } catch { /* sin almacenamiento */ }
+
+  /* ----- Avatar en bucle ----- */
+  const esperar = (ms) => new Promise((resolver) => { setTimeout(resolver, ms); });
+
+  async function bucle() {
+    const mio = ++turno;
+    if (!actual) return;
+    const { archivo, expresion } = datosSena(actual);
+    while (activo && mio === turno) {
+      const resultado = await sequencer.reproducirGlosa(actual, { archivo, expresion });
+      if (mio !== turno || resultado.cancelada) return;
+      if (!resultado.reproducidas.length) {
+        avisar(`No se encontró la animación de ${actual}.`);
+        return;
+      }
+      await esperar(650); // Una pausa en reposo deja ver dónde empieza la seña.
+    }
+  }
+
+  /* ----- Lista ----- */
+  function pintarLista() {
+    const glosas = validacion.lista(filtro, v.buscar.value);
+    const lista = glosas.slice(0, 400); // Con 400 basta para buscar; el resto, con el buscador.
+    v.items.replaceChildren(...lista.map((glosa) => {
+      const li = document.createElement('li');
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.dataset.glosa = glosa;
+      if (glosa === actual) boton.setAttribute('aria-current', 'true');
+      const n = document.createElement('span');
+      n.className = 'n';
+      n.textContent = validacion.puesto(glosa);
+      const g = document.createElement('span');
+      g.className = 'g';
+      g.textContent = glosa;
+      const chip = document.createElement('span');
+      pintarChip(chip, validacion.estado(glosa), true);
+      boton.append(n, g, chip);
+      li.append(boton);
+      return li;
+    }));
+    if (!glosas.length) {
+      const li = document.createElement('li');
+      li.className = 'vacio';
+      li.textContent = v.buscar.value ? 'Ninguna seña coincide con la búsqueda.' : 'No queda ninguna seña en este grupo. 🎉';
+      v.items.append(li);
+    } else if (glosas.length > lista.length) {
+      const li = document.createElement('li');
+      li.className = 'vacio';
+      li.textContent = `Y ${glosas.length - lista.length} más: usa el buscador.`;
+      v.items.append(li);
+    }
+    v.items.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function pintarProgreso() {
+    const r = validacion.resumen();
+    v.cuenta.textContent = `${r.validada} validadas · ${r.video} con video · ${r.corregir} por corregir · de ${r.total}`;
+    pintarBarra(v.barra, r);
+  }
+
+  /* ----- Ficha ----- */
+  function avisar(texto, { ok = false, deshacer = null } = {}) {
+    v.aviso.className = ok ? 'val-aviso ok' : 'val-aviso';
+    v.aviso.replaceChildren(texto);
+    if (deshacer) {
+      const boton = document.createElement('button');
+      boton.type = 'button';
+      boton.className = 'boton';
+      boton.style.cssText = 'min-height:30px;padding:0 10px;margin-left:8px;font-size:0.82rem';
+      boton.textContent = 'Deshacer';
+      boton.addEventListener('click', deshacer);
+      v.aviso.append(boton);
+    }
+  }
+
+  function pintarFicha() {
+    if (!actual) {
+      v.glosa.textContent = '—';
+      v.puesto.textContent = '';
+      v.datos.textContent = 'Elige una seña de la lista.';
+      return;
+    }
+    const info = validacion.info(actual);
+    const { expresion } = datosSena(actual);
+    v.puesto.textContent = `Puesto ${validacion.puesto(actual)} de ${validacion.orden.length}`;
+    pintarChip(v.estado, info.estado);
+    v.glosa.textContent = actual;
+
+    const partes = [];
+    const dato = (titulo, texto) => {
+      const b = document.createElement('b');
+      b.textContent = `${titulo}: `;
+      partes.push(partes.length ? ' · ' : '', b, texto);
+    };
+    const palabras = validacion.palabras[actual];
+    dato('Palabras', palabras?.length ? palabras.join(', ') : 'solo en frases');
+    if (info.fuente) dato('Fuente', info.fuente);
+    if (info.quien) dato(ESTADOS[info.estado].nombre, `${info.quien}, ${new Date(info.fecha).toLocaleDateString('es-CO')}`);
+    dato('Cara', CARAS[expresion] ?? expresion.replaceAll('_', ' '));
+    v.datos.replaceChildren(...partes);
+
+    const marcadas = new Set(info.estado === 'corregir' ? info.fallas ?? [] : []);
+    v.fallas.replaceChildren(...Object.entries(FALLAS).map(([clave, texto]) => {
+      const label = document.createElement('label');
+      const caja = document.createElement('input');
+      caja.type = 'checkbox';
+      caja.value = clave;
+      caja.checked = marcadas.has(clave);
+      label.append(caja, ` ${texto}`);
+      return label;
+    }));
+    v.nota.value = info.estado === 'corregir' ? info.nota ?? '' : '';
+  }
+
+  function elegir(glosa, { reproducir = true } = {}) {
+    actual = glosa;
+    try { if (glosa) localStorage.setItem('puente-ultima', glosa); } catch { /* sin almacenamiento */ }
+    pintarFicha();
+    v.items.querySelectorAll('[aria-current]').forEach((b) => b.removeAttribute('aria-current'));
+    const boton = [...v.items.querySelectorAll('button[data-glosa]')].find((b) => b.dataset.glosa === glosa);
+    boton?.setAttribute('aria-current', 'true');
+    boton?.scrollIntoView({ block: 'nearest' });
+    document.body.classList.remove('val-lista-abierta');
+    v.listaBoton.setAttribute('aria-expanded', 'false');
+    if (reproducir) bucle();
+  }
+
+  /* ----- Decidir ----- */
+  function decidir(estado) {
+    if (!actual) return;
+    const glosa = actual;
+    const fallas = [...v.fallas.querySelectorAll('input:checked')].map((caja) => caja.value);
+    const nota = v.nota.value;
+    if (estado === 'corregir' && !fallas.length && !nota.trim()) {
+      avisar('Marca qué está mal o escribe una nota, así se puede corregir.');
+      v.fallas.querySelector('input')?.focus();
+      return;
+    }
+    if (!validacion.nombre) {
+      avisar('Escribe tu nombre (y si eres intérprete o persona sorda) para firmar la validación.');
+      const campo = v.nombre.offsetParent ? v.nombre : v.nombreMovil;
+      if (campo === v.nombreMovil) document.body.classList.add('val-lista-abierta');
+      campo.focus();
+      return;
+    }
+    const antes = validacion.esLocal(glosa) ? { ...validacion.info(glosa) } : null;
+    validacion.marcar(glosa, estado, { fallas, nota });
+    const siguiente = validacion.siguiente(glosa, filtro) ?? glosa;
+    pintarLista();
+    elegir(siguiente);
+    avisar(`${glosa}: ${ESTADOS[estado].nombre.toLowerCase()}.`, {
+      ok: estado === 'validada',
+      deshacer: () => {
+        if (antes) validacion.importar({ senas: { [glosa]: { ...antes, fecha: new Date().toISOString() } } });
+        else validacion.deshacer(glosa);
+        pintarLista();
+        elegir(glosa);
+        avisar('');
+      },
+    });
+  }
+
+  function saltar() {
+    if (!actual) return;
+    avisar('');
+    elegir(validacion.siguiente(actual, filtro) ?? actual);
+  }
+
+  /* ----- Entrar y salir ----- */
+  function reencuadrar() {
+    viewer.encuadreAutomatico = true;
+    requestAnimationFrame(() => viewer.encuadrar());
+    setTimeout(() => {
+      viewer.encuadreAutomatico = false;
+      if (activo) vistaCamara(viewer, vista, false);
+      else viewer.encuadrar();
+    }, 450);
+  }
+
+  function entrar() {
+    if (activo) return;
+    if (!validacion?.orden.length) {
+      showSignStatus('Sin lista', 'No se pudo leer validaciones.json');
+      history.replaceState(null, '', location.pathname + location.search);
+      return;
+    }
+    if (document.body.classList.contains('modo-noticiero')) ui.noticieroSalir.click();
+    if (ui.liveButton.getAttribute('aria-pressed') === 'true') ui.liveButton.click();
+    activo = true;
+    velocidadAntes = sequencer.velocidad;
+    document.body.classList.add('modo-validar');
+    v.seccion.hidden = false;
+    document.title = 'Validar señas · Puente LSC';
+    v.nombre.value = validacion.nombre;
+    v.nombreMovil.value = validacion.nombre;
+    pintarProgreso();
+    const lista = validacion.lista(filtro);
+    if (!actual || !validacion.tiene(actual)) actual = lista[0] ?? validacion.orden[0];
+    pintarLista();
+    reencuadrar();
+    elegir(actual);
+  }
+
+  function salir() {
+    if (!activo) return;
+    activo = false;
+    turno++;
+    sequencer.velocidad = velocidadAntes;
+    document.body.classList.remove('modo-validar', 'val-lista-abierta');
+    v.seccion.hidden = true;
+    document.title = 'Puente LSC · Español a Lengua de Señas Colombiana';
+    sequencer.resetear();
+    reencuadrar();
+  }
+
+  const segunRuta = () => (location.hash === '#validar' ? entrar() : salir());
+  window.addEventListener('hashchange', segunRuta);
+
+  /* ----- Controles ----- */
+  v.items.addEventListener('click', (e) => {
+    const boton = e.target.closest('button[data-glosa]');
+    if (boton) { avisar(''); elegir(boton.dataset.glosa); }
+  });
+  v.filtros.forEach((boton) => boton.addEventListener('click', () => {
+    filtro = boton.dataset.filtro;
+    v.filtros.forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
+    pintarLista();
+  }));
+  v.buscar.addEventListener('input', pintarLista);
+  v.buscar.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const primera = v.items.querySelector('button[data-glosa]');
+    if (primera) elegir(primera.dataset.glosa);
+  });
+  const guardarNombre = (campo) => {
+    validacion.nombre = campo.value;
+    v.nombre.value = campo.value;
+    v.nombreMovil.value = campo.value;
+  };
+  v.nombre.addEventListener('change', () => guardarNombre(v.nombre));
+  [v.nombre, v.nombreMovil].forEach((campo) => campo.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') campo.blur(); // Enter guarda y deja libres las teclas V, C, S y R.
+  }));
+  v.nombreMovil.addEventListener('change', () => guardarNombre(v.nombreMovil));
+
+  $('val-repetir').addEventListener('click', bucle);
+  v.velocidades.forEach((boton) => boton.addEventListener('click', () => {
+    sequencer.velocidad = Number(boton.dataset.velocidad);
+    v.velocidades.forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
+    bucle();
+  }));
+  v.vistas.forEach((boton) => boton.addEventListener('click', () => {
+    vista = boton.dataset.vista;
+    v.vistas.forEach((b) => b.setAttribute('aria-pressed', String(b === boton)));
+    vistaCamara(viewer, vista);
+  }));
+  $('val-validar').addEventListener('click', () => decidir('validada'));
+  $('val-corregir').addEventListener('click', () => decidir('corregir'));
+  $('val-saltar').addEventListener('click', saltar);
+  v.listaBoton.addEventListener('click', () => {
+    const abierta = document.body.classList.toggle('val-lista-abierta');
+    v.listaBoton.setAttribute('aria-expanded', String(abierta));
+  });
+
+  $('val-exportar').addEventListener('click', () => {
+    const datos = validacion.exportar();
+    const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = `puente-lsc-validaciones-${datos.exportado.slice(0, 10)}.json`;
+    enlace.click();
+    setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+    avisar(`Se exportaron ${Object.keys(datos.senas).length} señas marcadas en esta página.`, { ok: true });
+  });
+  $('val-importar').addEventListener('change', async (e) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!archivo) return;
+    try {
+      const cambiadas = validacion.importar(JSON.parse(await archivo.text()));
+      pintarLista();
+      pintarFicha();
+      avisar(`Se unieron ${cambiadas} señas del archivo.`, { ok: true });
+    } catch (error) {
+      avisar(`No se pudo leer el archivo: ${error.message}`);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!activo || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest('input, textarea, select')) {
+      if (e.key === 'Escape') e.target.blur();
+      return;
+    }
+    const tecla = e.key.toLowerCase();
+    if (tecla === 'v') decidir('validada');
+    else if (tecla === 'c') decidir('corregir');
+    else if (tecla === 's') saltar();
+    else if (tecla === 'r') bucle();
+    else if (e.key === 'Escape') {
+      if (document.body.classList.contains('val-lista-abierta')) v.listaBoton.click();
+      else location.hash = '';
+    } else return;
+    e.preventDefault();
+  });
+
+  validacion.addEventListener('cambio', () => {
+    actualizarTarjeta();
+    if (activo) pintarProgreso();
+  });
+  segunRuta();
+}
+
+function setupDevUi(viewer, sequencer) {
   // Cambiar de avatar recarga la página: así no quedan en memoria el modelo y los
   // clips del avatar anterior, que tienen otro cuerpo.
   ui.avatarSelect.replaceChildren(...Object.entries(AVATARES).map(([id, a]) => new Option(a.nombre, id)));
@@ -1298,9 +1659,11 @@ function setupDevUi(viewer, sequencer) {
     const { glosa, indice, total, expresion, palabraOrigen } = detail;
     const contexto = palabraOrigen ? `Deletreo de ${palabraOrigen} · ` : '';
     showSignStatus(glosa, `${contexto}Seña ${indice + 1} de ${total} · ${expresion}`);
+    mostrarEstadoSena(glosa);
   });
   sequencer.addEventListener('fin', ({ detail }) => {
     showIdle();
+    mostrarEstadoSena(null);
     if (detail.omitidas.length > 0) {
       const glosas = detail.omitidas.map((aviso) => aviso.glosa).join(', ');
       ui.indicatorDetail.textContent = `Sin animación: ${glosas}`;
@@ -1320,9 +1683,15 @@ function setupDevUi(viewer, sequencer) {
   showIdle();
   ui.indicator.hidden = false;
   ui.panel.hidden = false;
+
+  // v65: la validación llega en paralelo; cuando esté, la tarjeta y el modo validar.
+  cargaValidacion.then(() => {
+    actualizarTarjeta();
+    setupValidar(viewer, sequencer);
+  });
 }
 
-console.info('[Avatar Señas] app.js versión 51 (1178 señas, modo en vivo y noticiero) cargada');
+console.info('[Puente LSC] app.js versión 65 (1198 señas, temas y modo validar) cargada');
 
 async function main() {
   let viewer;
@@ -1332,8 +1701,10 @@ async function main() {
   } catch (error) {
     console.error('[AvatarViewer] No se pudo iniciar WebGL:', error);
     showError('Este navegador o dispositivo no pudo iniciar WebGL, necesario para mostrar el avatar.');
+    setupTema(null);
     return;
   }
+  setupTema(viewer); // v65: antes de cargar el modelo, para que el botón responda enseguida.
 
   // Disponible en la consola del navegador y para los próximos módulos.
   window.avatarViewer = viewer;

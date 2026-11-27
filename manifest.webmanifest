@@ -1,17 +1,35 @@
 {
-  "name": "Avatar Señas · Español a LSC",
-  "short_name": "Avatar Señas",
-  "description": "Avatar 3D que traduce español a Lengua de Señas Colombiana (LSC).",
+  "name": "Puente LSC · Español a Lengua de Señas Colombiana",
+  "short_name": "Puente LSC",
+  "description": "Puente LSC: avatar 3D que traduce español a Lengua de Señas Colombiana (LSC) y permite validar sus señas.",
   "lang": "es-CO",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#20262e",
-  "theme_color": "#20262e",
+  "background_color": "#FBF7F0",
+  "theme_color": "#FBF7F0",
   "icons": [
-    { "src": "iconos/icono-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "iconos/icono-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "iconos/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "iconos/icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "iconos/icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "iconos/icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
   ]
 }
